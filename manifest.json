@@ -1,0 +1,22 @@
+{
+    "name": "SketchPro - Professional Drawing App",
+    "short_name": "SketchPro",
+    "description": "Aplikasi Canvas dan Desain Profesional dengan fitur Multi-Layer, Smart Guides, dan Export Resolusi Tinggi 100% Offline.",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#0B1120",
+    "theme_color": "#6366f1",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "assets/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

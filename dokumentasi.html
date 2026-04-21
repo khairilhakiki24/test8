@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Book - SketchPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
+        .doc-section { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 2rem; }
+        h1, h2, h3 { color: #0f172a; font-weight: 700; }
+        code { background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.875em; color: #ef4444; }
+    </style>
+</head>
+<body class="text-slate-700 antialiased max-w-4xl mx-auto p-4 md:p-8">
+
+    <header class="text-center mb-12">
+        <div class="w-20 h-20 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-xl">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+        </div>
+        <h1 class="text-4xl">Dokumentasi SketchPro</h1>
+        <p class="text-slate-500 mt-2 text-lg">Panduan Lengkap Penggunaan & Instalasi (Versi 4.0)</p>
+    </header>
+
+    <div class="doc-section">
+        <h2 class="text-2xl border-b pb-2 mb-4">1. Panduan Penggunaan Fitur Utama</h2>
+        <ul class="list-disc pl-5 space-y-3">
+            <li><strong>Menggambar Presisi (Bezier Smoothing):</strong> Gunakan alat Pena untuk menggambar. Sistem secara otomatis akan menghaluskan goresan tangan Anda menggunakan algoritma <em>Quadratic Bezier Curve</em>.</li>
+            <li><strong>Sistem Multi-Layer Profesional:</strong> Anda dapat menambahkan Teks, Bentuk Geometri (Shapes), dan Gambar ke dalam kanvas. Setiap objek beroperasi dalam layernya masing-masing. Buka panel <strong>Layers</strong> di kanan atas untuk mengunci (Lock), menyembunyikan (Hide), atau mengubah urutan objek (Z-Index).</li>
+            <li><strong>Smart Guides & Multi-Select:</strong> Saat menggeser objek, garis bantu merah (Smart Guides) akan otomatis muncul untuk membantu Anda menyejajarkan objek dengan presisi. Tahan tombol <kbd class="bg-slate-100 border p-1 rounded text-xs">Shift</kbd> atau <kbd class="bg-slate-100 border p-1 rounded text-xs">Ctrl</kbd> lalu klik beberapa objek untuk menyeleksi banyak layer sekaligus, atau tekan <kbd class="bg-slate-100 border p-1 rounded text-xs">Ctrl + A</kbd> untuk memilih semua.</li>
+            <li><strong>Grup & Pintasan (Shortcuts):</strong> Klik kanan pada kanvas untuk membuka <em>Context Menu</em>. Anda bisa melakukan duplikasi, memindah posisi layer (depan/belakang), serta menggabungkan layer (Group/Ungroup).</li>
+            <li><strong>Ekspor High-Res (300 DPI):</strong> Klik tombol Ekspor (ikon Unduh Awan). Anda bisa merender kanvas hingga resolusi tinggi untuk dicetak ke format PDF, JPG, atau PNG dengan dukungan latar belakang transparan.</li>
+            <li><strong>Auto-Save (Zero Lag):</strong> Sistem Delta History akan terus menyimpan progres Anda di latar belakang. Jika browser tidak sengaja di-refresh, kanvas Anda tidak akan hilang.</li>
+        </ul>
+    </div>
+
+    <div class="doc-section">
+        <h2 class="text-2xl border-b pb-2 mb-4">2. Panduan Personalisasi Brand (Warna & Nama)</h2>
+        <p class="mb-3">Aplikasi ini dirancang untuk mudah di-branding ulang sesuai keinginan Anda atau klien:</p>
+        <ol class="list-decimal pl-5 space-y-2">
+            <li>Buka Menu <strong>Pengaturan</strong> di navigasi bawah/samping.</li>
+            <li>Di kolom <em>Nama Brand Aplikasi</em>, ketikkan nama aplikasi yang Anda inginkan.</li>
+            <li>Di kolom <em>Warna Tema Utama</em>, pilih warna melalui Color Picker (Warna ini akan otomatis mengubah seluruh tombol, ikon aktif, garis batas seleksi, dan status bar HP Android).</li>
+            <li>Klik tombol <strong>Simpan</strong>.</li>
+        </ol>
+    </div>
+
+    <div class="doc-section">
+        <h2 class="text-2xl border-b pb-2 mb-4">3. Panduan Modifikasi Icon PWA</h2>
+        <p class="mb-3">Untuk membuat aplikasi terinstal sempurna layaknya aplikasi asli (Native) di Android/iOS, siapkan icon logo Anda:</p>
+        <ul class="list-disc pl-5 space-y-2">
+            <li>Buat folder baru bernama <code>assets</code> satu direktori dengan file <code>index.html</code>.</li>
+            <li>Siapkan 2 buah file gambar berformat PNG.</li>
+            <li>Beri nama file pertama: <code>icon-192x192.png</code> (Ukuran tepat 192x192 pixel).</li>
+            <li>Beri nama file kedua: <code>icon-512x512.png</code> (Ukuran tepat 512x512 pixel).</li>
+            <li>Letakkan kedua file tersebut di dalam folder <code>assets/</code>.</li>
+        </ul>
+    </div>
+
+    <div class="doc-section">
+        <h2 class="text-2xl border-b pb-2 mb-4">4. Panduan Memecah File (Untuk Developer)</h2>
+        <p class="mb-3">Bagi Anda yang ingin merapikan struktur file ke format folder web standar (CSS/JS terpisah), buka <code>index.html</code> dan cari komentar pembatas berikut:</p>
+        <div class="bg-slate-800 text-white p-4 rounded-lg text-sm mb-4">
+            <code>&lt;!-- ============================================== --&gt;</code><br>
+            <code>&lt;!-- FILE: source/assets/css/style.css START --&gt;</code><br>
+            <em class="text-slate-400">... pindahkan seluruh kode CSS di sini ke file style.css ...</em><br>
+            <code>&lt;!-- FILE: source/assets/css/style.css END --&gt;</code>
+        </div>
+        <p>Lakukan hal yang sama pada blok kode JavaScript di bagian paling bawah file (cari komentar pemisah <code>app.js</code>).</p>
+        <p class="mt-4 text-sm text-amber-700 font-medium bg-amber-50 p-4 rounded-xl border border-amber-200"><strong>Catatan Mode Offline:</strong> Aplikasi ini dilindungi oleh Service Worker. Namun, untuk penggunaan 100% Offline (tanpa koneksi internet sama sekali saat instalasi pertama), Anda wajib mengunduh link CDN (Tailwind, Lucide, SheetJS, jsPDF, ChartJS) yang ada di tag &lt;head&gt; dan mengubah jalurnya (path) ke file lokal Anda.</p>
+    </div>
+
+    <div class="doc-section">
+        <h2 class="text-2xl border-b pb-2 mb-4">5. Backup & Restore Data Database</h2>
+        <p class="mb-3">Aplikasi ini berjalan secara lokal dan <em>private</em> di perangkat Anda (menggunakan IndexedDB). Oleh karena itu:</p>
+        <ul class="list-disc pl-5 space-y-2">
+            <li>Gunakan fitur <strong>Backup Data</strong> di Menu Pengaturan secara berkala untuk mengekspor data metadata Galeri dan Kategori ke dalam format Excel (.xlsx).</li>
+            <li>Jika Anda berganti perangkat atau browser, gunakan fitur <strong>Restore Data</strong> dan unggah file backup Excel Anda sebelumnya untuk mengembalikan struktur galeri.</li>
+        </ul>
+    </div>
+
+    <footer class="text-center text-slate-400 mt-12 pb-8 text-sm border-t border-slate-200 pt-8">
+        © 2026 Bejaja Digital. Hak Cipta Dilindungi.
+    </footer>
+</body>
+</html>

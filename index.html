@@ -1,0 +1,2115 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>SketchPro</title>
+    
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        :root { --color-primary: #6366f1; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+        
+        .btn-press { transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-press:active { transform: scale(0.92); }
+        @keyframes fadeSlideUp { 0% { opacity: 0; transform: translateY(15px); } 100% { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.2s ease forwards; }
+        
+        .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); }
+        .dark .glass-nav { background: rgba(11, 17, 32, 0.85); border-top: 1px solid rgba(255,255,255,0.05); }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+        .dark .glass-panel { background: rgba(15, 23, 42, 0.85); }
+        
+        .pb-safe { padding-bottom: calc(120px + env(safe-area-inset-bottom, 20px)) !important; }
+        .touch-manipulation { touch-action: manipulation; }
+
+        #drawing-board { touch-action: none; cursor: crosshair; }
+        
+        .tool-active { background-color: var(--color-primary-soft, rgba(99, 102, 241, 0.1)); color: var(--color-primary) !important; font-weight: bold; }
+        .drag-handle { width: 40px; height: 5px; background: #cbd5e1; border-radius: 10px; margin: 0 auto 15px auto; }
+        .dark .drag-handle { background: #475569; }
+
+        /* Background Patterns */
+        .bg-pattern-plain { background-color: #ffffff; }
+        .dark .bg-pattern-plain { background-color: #1e293b; }
+        .bg-pattern-grid { background-color: #ffffff; background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px); background-size: 20px 20px; }
+        .dark .bg-pattern-grid { background-color: #1e293b; background-image: linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px); }
+        .bg-pattern-dot { background-color: #ffffff; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
+        .dark .bg-pattern-dot { background-color: #1e293b; background-image: radial-gradient(#475569 1.5px, transparent 1px); }
+
+        /* Focus Mode */
+        body.canvas-focus aside.left-sidebar, body.canvas-focus header, body.canvas-focus nav.bottom-nav, body.canvas-focus .canvas-header-top { display: none !important; }
+        body.canvas-focus #main-scroll-area { padding: 0 !important; overflow: hidden; }
+        body.canvas-focus #view-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 99990; background: #ffffff !important; padding: 0; display: flex; flex-direction: column; border: none; }
+        .dark body.canvas-focus #view-canvas { background: #0f172a !important; }
+        
+        .drag-scroll { cursor: default; } .drag-scroll.cursor-grabbing { cursor: grabbing; }
+
+        /* DOCKABLE TOOLBAR */
+        .toolbar-wrapper { position: relative; display: flex; flex-direction: row; width: 100%; overflow-x: auto; white-space: nowrap; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(226, 232, 240, 1); z-index: 40; }
+        .dark .toolbar-wrapper { border-color: rgba(30, 41, 59, 1); }
+        .drag-handle-cont { display: none !important; }
+        body.canvas-focus .toolbar-wrapper { position: fixed; z-index: 100000; width: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(148, 163, 184, 0.3); }
+        .dark body.canvas-focus .toolbar-wrapper { background: rgba(15, 23, 42, 0.95); border-color: rgba(255,255,255,0.1); }
+        body.canvas-focus .toolbar-wrapper.is-dragging { transition: none; opacity: 0.85; transform: scale(1.02) !important; }
+        body.canvas-focus .drag-handle-cont { display: flex !important; }
+
+        body.canvas-focus .toolbar-wrapper[data-dock="bottom"] { bottom: 20px; left: 50%; transform: translateX(-50%); flex-direction: row; overflow-x: auto; overflow-y: hidden; max-width: 95vw; }
+        body.canvas-focus .toolbar-wrapper[data-dock="top"] { top: 20px; left: 50%; transform: translateX(-50%); flex-direction: row; overflow-x: auto; overflow-y: hidden; max-width: 95vw; }
+        body.canvas-focus .toolbar-wrapper[data-dock="left"] { left: 15px; top: 50%; transform: translateY(-50%); flex-direction: column; overflow-y: auto; overflow-x: hidden; max-height: 90vh; padding: 12px; border-radius: 20px; width: 140px; }
+        body.canvas-focus .toolbar-wrapper[data-dock="right"] { right: 15px; top: 50%; transform: translateY(-50%); flex-direction: column; overflow-y: auto; overflow-x: hidden; max-height: 90vh; padding: 12px; border-radius: 20px; width: 140px; }
+        body.canvas-focus .toolbar-wrapper[data-dock="bottom"] .drag-handle-icon, body.canvas-focus .toolbar-wrapper[data-dock="top"] .drag-handle-icon { transform: rotate(90deg); }
+
+        .group-separator { border-right: 1px solid rgba(148, 163, 184, 0.3); padding-right: 0.5rem; margin-right: 0.5rem; }
+        .group-separator:last-child { border-right: none; padding-right: 0; margin-right: 0; }
+        .dark .group-separator { border-color: rgba(255, 255, 255, 0.1); }
+
+        body.canvas-focus .toolbar-wrapper[data-dock="left"] > div.group-separator, body.canvas-focus .toolbar-wrapper[data-dock="right"] > div.group-separator { border-right: none !important; border-bottom: 1px solid rgba(148, 163, 184, 0.3); padding-right: 0 !important; padding-bottom: 12px !important; margin-bottom: 12px !important; margin-right: 0 !important; width: 100% !important; }
+        .dark body.canvas-focus .toolbar-wrapper[data-dock="left"] > div.group-separator, .dark body.canvas-focus .toolbar-wrapper[data-dock="right"] > div.group-separator { border-bottom-color: rgba(255, 255, 255, 0.1); }
+        body.canvas-focus .toolbar-wrapper[data-dock="left"] > div.group-separator:last-child, body.canvas-focus .toolbar-wrapper[data-dock="right"] > div.group-separator:last-child { border-bottom: none !important; margin-bottom: 0 !important; padding-bottom: 0 !important; }
+        body.canvas-focus .toolbar-wrapper[data-dock="left"] .colors-container, body.canvas-focus .toolbar-wrapper[data-dock="right"] .colors-container, body.canvas-focus .toolbar-wrapper[data-dock="left"] .tools-container, body.canvas-focus .toolbar-wrapper[data-dock="right"] .tools-container { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; justify-items: center !important; }
+        body.canvas-focus .toolbar-wrapper[data-dock="left"] input[type="range"], body.canvas-focus .toolbar-wrapper[data-dock="right"] input[type="range"] { width: 100px; }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Pro Tooltips */
+        .pro-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-8px); opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap; font-size: 11px; font-weight: 600; background: #1e293b; color: white; padding: 6px 10px; border-radius: 6px; z-index: 100; margin-bottom: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .group:hover .pro-tooltip { opacity: 1; }
+        body.canvas-focus .toolbar-wrapper[data-dock="left"] .pro-tooltip { left: 100%; bottom: 50%; transform: translateY(50%) translateX(8px); margin-bottom: 0; margin-left: 4px; }
+        body.canvas-focus .toolbar-wrapper[data-dock="right"] .pro-tooltip { left: auto; right: 100%; bottom: 50%; transform: translateY(50%) translateX(-8px); margin-bottom: 0; margin-right: 4px; }
+
+        /* Custom UI */
+        .canvas-object { transition: box-shadow 0.2s; transform-origin: center center; }
+        .layer-locked { pointer-events: none !important; opacity: 0.7; }
+        .layer-hidden { display: none !important; }
+
+        /* Multi-select bounding box */
+        .multi-select-box { border: 2px dashed var(--color-primary); background: rgba(99, 102, 241, 0.05); position: absolute; pointer-events: none; z-index: 25; }
+
+        /* Context Menu */
+        .context-menu-item { padding: 8px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.1s; }
+        .context-menu-item:hover { background-color: rgba(99, 102, 241, 0.1); color: var(--color-primary); }
+        .dark .context-menu-item:hover { background-color: rgba(255,255,255,0.05); color: #fff; }
+        
+        /* Layer Panel Slide */
+        #layer-panel { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #layer-panel.open { transform: translateX(0); }
+        
+        @media print { 
+            body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; } 
+            #print-area { position: absolute !important; left: 0 !important; top: 0 !important; margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; } 
+            @page { size: auto; margin: 0; } .no-print { display: none !important; }
+        }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: 'var(--color-primary)', darkBg: '#0B1120', darkSurface: '#182235' }, boxShadow: { 'soft': '0 20px 40px -15px rgba(0,0,0,0.05)' } } } }
+        window.addEventListener('error', function(e) { if (e.message.includes('ResizeObserver')) { e.stopImmediatePropagation(); } });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-darkBg dark:text-slate-200 font-sans h-screen flex overflow-hidden selection:bg-primary selection:text-white">
+
+    <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100010] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="fixed inset-0 z-[999999] bg-white/80 dark:bg-darkBg/80 backdrop-blur-sm hidden items-center justify-center flex-col transition-opacity duration-300 opacity-0">
+        <i data-lucide="loader-2" class="w-12 h-12 text-primary animate-spin mb-4"></i>
+        <h3 id="loading-text" class="text-lg font-extrabold text-slate-700 dark:text-slate-200">Memproses...</h3>
+        <p class="text-sm text-slate-500 mt-1">Harap tunggu sebentar.</p>
+    </div>
+
+    <!-- CONTEXT MENU -->
+    <div id="context-menu" class="hidden absolute bg-white dark:bg-darkSurface shadow-2xl rounded-xl border border-slate-200 dark:border-slate-700 z-[100020] py-2 w-56 animate-fade-in overflow-hidden">
+        <div class="context-menu-item text-slate-700 dark:text-slate-300" onclick="DrawingEngine.menuAction('front')"><i data-lucide="bring-to-front" class="w-4 h-4"></i> Bawa ke Depan</div>
+        <div class="context-menu-item text-slate-700 dark:text-slate-300" onclick="DrawingEngine.menuAction('back')"><i data-lucide="send-to-back" class="w-4 h-4"></i> Kirim ke Belakang</div>
+        <div class="w-full h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
+        <div class="context-menu-item text-slate-700 dark:text-slate-300" onclick="DrawingEngine.menuAction('group')"><i data-lucide="link" class="w-4 h-4"></i> Grup (Ctrl+G)</div>
+        <div class="context-menu-item text-slate-700 dark:text-slate-300" onclick="DrawingEngine.menuAction('ungroup')"><i data-lucide="unlink" class="w-4 h-4"></i> Pisahkan (Ctrl+Shift+G)</div>
+        <div class="context-menu-item text-slate-700 dark:text-slate-300" onclick="DrawingEngine.menuAction('duplicate')"><i data-lucide="copy" class="w-4 h-4"></i> Duplikat (Ctrl+D)</div>
+        <div class="context-menu-item text-red-500" onclick="DrawingEngine.menuAction('delete')"><i data-lucide="trash-2" class="w-4 h-4"></i> Hapus Objek (Del)</div>
+    </div>
+
+    <!-- MODAL HAPUS -->
+    <div id="modal-delete" class="fixed inset-0 z-[100005] bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white dark:bg-darkSurface rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all">
+            <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4"><i data-lucide="alert-triangle"></i></div>
+            <h3 class="text-lg font-bold mb-2">Hapus Data?</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Tindakan ini tidak dapat dibatalkan. Data akan dihapus secara permanen.</p>
+            <div class="flex gap-3">
+                <button onclick="UI.closeModal('modal-delete')" class="flex-1 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-medium btn-press">Batal</button>
+                <button id="btn-confirm-delete" class="flex-1 px-4 py-2 rounded-xl bg-red-600 text-white font-medium btn-press shadow-lg shadow-red-600/30">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ADVANCED EXPORT -->
+    <div id="modal-export" class="fixed inset-0 z-[100005] bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white dark:bg-darkSurface rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all">
+            <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-4"><i data-lucide="download-cloud"></i></div>
+            <h3 class="text-lg font-bold mb-2">Ekspor Resolusi Tinggi (300 DPI)</h3>
+            <form id="form-export" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Format File</label>
+                    <select id="export-format" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none">
+                        <option value="png">PNG (Lossless)</option>
+                        <option value="jpg">JPG (Lebih Ringan)</option>
+                        <option value="pdf">PDF (Dokumen Standar)</option>
+                    </select>
+                </div>
+                <div id="export-bg-opt">
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Latar Belakang</label>
+                    <select id="export-bg" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none">
+                        <option value="transparent">Transparan Penuh (Hanya PNG)</option>
+                        <option value="solid">Latar Berwarna (Putih)</option>
+                        <option value="pattern">Termasuk Pola Kanvas (Grid/Dot)</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="UI.closeModal('modal-export')" class="flex-1 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-medium btn-press">Batal</button>
+                    <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-primary text-white font-medium btn-press shadow-lg shadow-primary/30">Unduh (High-Res)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADVANCED TEXT -->
+    <div id="modal-add-text" class="fixed inset-0 z-[100005] bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white dark:bg-darkSurface rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all">
+            <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4"><i data-lucide="type"></i></div>
+            <h3 class="text-lg font-bold mb-2">Editor Teks Profesional</h3>
+            <form id="form-add-text" class="space-y-4">
+                <div>
+                    <textarea id="text-input-content" required rows="3" placeholder="Ketik sesuatu..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-primary outline-none transition-all"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Font</label>
+                        <select id="text-input-font" class="w-full px-2 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none text-sm">
+                            <option value="sans-serif">Sans-Serif</option>
+                            <option value="serif">Serif (Times)</option>
+                            <option value="monospace">Monospace</option>
+                            <option value="cursive">Cursive</option>
+                            <option value="Impact">Impact</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Align</label>
+                        <select id="text-input-align" class="w-full px-2 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none text-sm">
+                            <option value="left">Kiri</option>
+                            <option value="center">Tengah</option>
+                            <option value="right">Kanan</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <div class="w-1/3">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Warna</label>
+                        <input type="color" id="text-input-color" value="#000000" class="w-full h-10 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-0">
+                    </div>
+                    <div class="w-2/3">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ukuran (px)</label>
+                        <input type="number" id="text-input-size" value="48" min="10" max="300" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="UI.closeModal('modal-add-text')" class="flex-1 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-medium btn-press">Batal</button>
+                    <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-primary text-white font-medium btn-press shadow-lg shadow-primary/30">Terapkan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL KANVAS BARU -->
+    <div id="modal-new-canvas" class="fixed inset-0 z-[100005] bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white dark:bg-darkSurface rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all">
+            <div class="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center mb-4"><i data-lucide="monitor"></i></div>
+            <h3 class="text-lg font-bold mb-2">Ukuran Kanvas</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-4">Tentukan resolusi kanvas yang Anda inginkan (dalam pixel).</p>
+            <form id="form-new-canvas" class="space-y-4">
+                <div class="flex gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Lebar (px)</label>
+                        <input type="number" id="new-canvas-w" value="1280" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Tinggi (px)</label>
+                        <input type="number" id="new-canvas-h" value="720" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="UI.closeModal('modal-new-canvas')" class="flex-1 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-medium btn-press">Batal</button>
+                    <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-primary text-white font-medium btn-press shadow-lg shadow-primary/30">Mulai</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL SIMPAN -->
+    <div id="modal-save-canvas" class="fixed inset-0 z-[100005] bg-black/50 backdrop-blur-sm hidden items-end md:items-center justify-center md:p-4 transition-opacity">
+        <div id="save-canvas-sheet" class="bg-white dark:bg-darkSurface rounded-t-3xl md:rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-transform translate-y-full md:translate-y-0">
+            <div id="save-drag-handle" class="drag-handle md:hidden"></div>
+            <h3 class="text-xl font-bold mb-4">Simpan Papan Tulis</h3>
+            <form id="form-save-canvas" class="space-y-4">
+                <input type="hidden" id="canvas-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-500 mb-1">Judul Gambar</label>
+                    <input type="text" id="canvas-title" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-500 mb-1">Kategori</label>
+                    <select id="canvas-category" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 outline-none appearance-none"></select>
+                </div>
+                <div class="pt-2 flex gap-3">
+                    <button type="button" onclick="UI.closeModal('modal-save-canvas', 'save-canvas-sheet')" class="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-medium btn-press w-1/3">Batal</button>
+                    <button type="submit" class="px-4 py-3 rounded-xl bg-primary text-white font-medium btn-press w-2/3 shadow-lg shadow-primary/30">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SIDEBAR KIRI (DESKTOP) -->
+    <aside class="left-sidebar hidden md:flex flex-col w-72 bg-white dark:bg-darkSurface border-r border-slate-100 dark:border-slate-800 z-40">
+        <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center mr-3 shadow-lg shadow-primary/40">
+                <i data-lucide="pen-tool" class="w-5 h-5"></i>
+            </div>
+            <h1 class="text-xl font-extrabold tracking-tight app-name-display">SketchPro</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+            <a href="#" onclick="App.navigate('dashboard')" class="menu-item flex items-center px-4 py-3 rounded-xl text-slate-500 active:bg-slate-50 md:hover:bg-slate-50 dark:active:bg-slate-800/50 transition-colors" data-target="dashboard"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> <span class="font-medium">Galeri & Dasbor</span></a>
+            <a href="#" onclick="App.navigate('canvas')" class="menu-item flex items-center px-4 py-3 rounded-xl text-slate-500 active:bg-slate-50 md:hover:bg-slate-50 dark:active:bg-slate-800/50 transition-colors" data-target="canvas"><i data-lucide="palette" class="w-5 h-5 mr-3"></i> <span class="font-medium">Area Menggambar</span></a>
+            <a href="#" onclick="App.navigate('categories')" class="menu-item flex items-center px-4 py-3 rounded-xl text-slate-500 active:bg-slate-50 md:hover:bg-slate-50 dark:active:bg-slate-800/50 transition-colors" data-target="categories"><i data-lucide="tags" class="w-5 h-5 mr-3"></i> <span class="font-medium">Master Kategori</span></a>
+        </nav>
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <button onclick="UI.toggleTheme()" class="w-full flex items-center px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors btn-press">
+                <i data-lucide="moon" class="w-5 h-5 mr-3 dark:hidden"></i><i data-lucide="sun" class="w-5 h-5 mr-3 hidden dark:block text-yellow-400"></i>
+                <span class="font-medium dark:hidden">Mode Gelap</span><span class="font-medium hidden dark:block">Mode Terang</span>
+            </button>
+            <a href="#" onclick="App.navigate('settings')" class="menu-item flex items-center px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" data-target="settings"><i data-lucide="settings" class="w-5 h-5 mr-3"></i> <span class="font-medium">Pengaturan</span></a>
+        </div>
+    </aside>
+
+    <!-- RIGHT SIDEBAR: LAYER PANEL -->
+    <aside id="layer-panel" class="fixed right-0 top-0 h-full w-64 bg-white dark:bg-darkSurface border-l border-slate-200 dark:border-slate-700 z-[100000] shadow-2xl transform translate-x-full flex flex-col">
+        <div class="h-14 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700">
+            <h3 class="font-bold flex items-center"><i data-lucide="layers" class="w-4 h-4 mr-2 text-primary"></i> Panel Layer</h3>
+            <button onclick="UI.toggleLayerPanel()" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-2 space-y-1 hide-scrollbar" id="layer-list-container">
+            <!-- Layers rendered here -->
+        </div>
+        <div class="p-3 border-t border-slate-200 dark:border-slate-700">
+            <button onclick="DrawingEngine.flattenAllLayers()" class="w-full py-2 bg-primary/10 text-primary rounded-lg text-sm font-bold btn-press hover:bg-primary hover:text-white transition-colors">Bake ke Canvas (Flatten)</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        <header class="md:hidden h-14 glass-nav flex items-center justify-between px-4 sticky top-0 z-30 shrink-0">
+            <div class="flex items-center">
+                <div class="w-7 h-7 rounded bg-primary text-white flex items-center justify-center mr-2"><i data-lucide="pen-tool" class="w-4 h-4"></i></div>
+                <h1 class="text-lg font-extrabold app-name-display">SketchPro</h1>
+            </div>
+            <button onclick="UI.toggleTheme()" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 btn-press">
+                <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i><i data-lucide="sun" class="w-4 h-4 hidden dark:block text-yellow-400"></i>
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto pb-safe p-4 md:p-8" id="main-scroll-area">
+            
+            <!-- VIEW DASHBOARD -->
+            <div id="view-dashboard" class="view-section animate-fade-up">
+                <div class="flex justify-between items-end mb-6 md:mb-8">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Karya Anda</h2>
+                        <p class="text-slate-500 mt-1">Kelola dan lihat papan tulis digital Anda.</p>
+                    </div>
+                    <button onclick="UI.openNewCanvasModal()" class="hidden md:flex items-center px-4 py-2.5 bg-primary text-white rounded-xl font-medium btn-press shadow-lg shadow-primary/30">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Kanvas Baru
+                    </button>
+                </div>
+
+                <div class="bg-white dark:bg-darkSurface p-4 md:p-6 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800 mb-8">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Statistik Karya per Kategori</h3>
+                    <div class="h-48 w-full"><canvas id="chart-dashboard"></canvas></div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-3 mb-6">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="text" id="search-gallery" placeholder="Cari judul..." class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-darkSurface focus:ring-2 focus:ring-primary outline-none transition-all">
+                    </div>
+                </div>
+
+                <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
+                <div class="h-32 w-full shrink-0 block md:hidden"></div>
+            </div>
+
+            <!-- VIEW KANVAS -->
+            <div id="view-canvas" class="view-section hidden h-full flex-col min-h-[70vh]">
+                <div class="flex justify-between items-center mb-4 shrink-0 canvas-header-top">
+                    <h2 class="text-2xl font-extrabold">Area Kanvas</h2>
+                    <div class="flex gap-2">
+                        <button onclick="UI.toggleLayerPanel()" class="flex items-center px-3 py-2.5 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-medium btn-press shadow-sm border border-slate-200 dark:border-slate-700" title="Manajemen Layer">
+                            <i data-lucide="layers" class="w-5 h-5 md:mr-2 pointer-events-none"></i> <span class="hidden md:inline pointer-events-none">Layers</span>
+                        </button>
+                        <button onclick="DrawingEngine.executeClear()" class="p-2.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 btn-press touch-manipulation" title="Bersihkan Kanvas Seketika"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
+                        <button onclick="UI.openSaveCanvasModal()" class="flex items-center px-4 py-2.5 bg-primary text-white rounded-xl font-medium btn-press shadow-lg shadow-primary/30">
+                            <i data-lucide="save" class="w-5 h-5 md:mr-2 pointer-events-none"></i> <span class="hidden md:inline pointer-events-none">Simpan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC DOCKABLE TOOLBAR -->
+                <div id="main-toolbar" class="toolbar-wrapper drag-scroll glass-panel rounded-2xl p-2 hide-scrollbar pointer-events-auto" data-dock="bottom">
+                    <div id="toolbar-drag-handle" class="drag-handle-cont flex items-center justify-center p-2 mr-1 cursor-move text-slate-400 btn-press pointer-events-auto">
+                        <i data-lucide="grip-vertical" class="w-5 h-5 drag-handle-icon pointer-events-none"></i>
+                    </div>
+
+                    <!-- Warna -->
+                    <div class="colors-container group-separator flex gap-2 pr-2 shrink-0 pointer-events-auto items-center">
+                        <button onclick="DrawingEngine.setColor('#000000')" class="w-8 h-8 rounded-full bg-black ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-darkBg ring-transparent focus:ring-primary btn-press shadow-sm"></button>
+                        <button onclick="DrawingEngine.setColor('#4b5563')" class="w-8 h-8 rounded-full bg-gray-600 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-darkBg ring-transparent focus:ring-primary btn-press shadow-sm"></button>
+                        <button onclick="DrawingEngine.setColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-darkBg ring-transparent focus:ring-primary btn-press shadow-sm"></button>
+                        <button onclick="DrawingEngine.setColor('#f97316')" class="w-8 h-8 rounded-full bg-orange-500 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-darkBg ring-transparent focus:ring-primary btn-press shadow-sm"></button>
+                        <button onclick="DrawingEngine.setColor('#eab308')" class="w-8 h-8 rounded-full bg-yellow-400 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-darkBg ring-transparent focus:ring-primary btn-press shadow-sm"></button>
+                        <button onclick="DrawingEngine.setColor('#22c55e')" class="w-8 h-8 rounded-full bg-green-500 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-darkBg ring-transparent focus:ring-primary btn-press shadow-sm"></button>
+                        <button onclick="DrawingEngine.setColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-darkBg ring-transparent focus:ring-primary btn-press shadow-sm"></button>
+                        <div class="relative w-8 h-8 rounded-full shadow-sm shrink-0 flex items-center justify-center border-2 border-white dark:border-darkBg ring-2 ring-slate-200 dark:ring-slate-700 overflow-hidden btn-press" title="Warna Kustom">
+                            <input type="color" id="custom-color-picker" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="DrawingEngine.setColor(this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Peralatan Utama (Tools) -->
+                    <div class="tools-container group-separator flex gap-1 pr-2 shrink-0 pointer-events-auto items-center">
+                        <button onclick="DrawingEngine.setTool('pen')" id="tool-pen" class="group relative p-2.5 rounded-lg tool-active btn-press"><i data-lucide="pen" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Pena (Smooth Bezier)</span></button>
+                        <button onclick="DrawingEngine.setTool('eraser')" id="tool-eraser" class="group relative p-2.5 rounded-lg text-slate-500 btn-press"><i data-lucide="eraser" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Penghapus (Klik Ganda = Hapus Objek)</span></button>
+                        <button onclick="DrawingEngine.setTool('move-image')" id="tool-move-image" class="group relative p-2.5 rounded-lg text-slate-500 btn-press"><i data-lucide="mouse-pointer-2" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Seleksi & Pindah (Tahan Ctrl/Shift: Multi-Select)</span></button>
+                        <button onclick="UI.openModal('modal-add-text')" id="tool-text" class="group relative p-2.5 rounded-lg text-slate-500 btn-press"><i data-lucide="type" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Tambah Teks</span></button>
+                    </div>
+
+                    <!-- Professional Shapes -->
+                    <div class="tools-container group-separator flex gap-1 pr-2 shrink-0 pointer-events-auto items-center" id="shapes-group">
+                        <button onclick="DrawingEngine.toggleShapeMode()" id="btn-shape-mode" class="group relative p-2 rounded-lg text-primary bg-primary/10 border border-primary/20 font-bold text-xs btn-press hover:bg-primary/20">ISI<span class="pro-tooltip">Mode Bentuk: Isi/Garis</span></button>
+                        <button onclick="DrawingEngine.spawnShape('rect')" class="group relative p-2 rounded-lg text-slate-500 btn-press hover:bg-slate-200 dark:hover:bg-slate-800"><i data-lucide="square" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Kotak</span></button>
+                        <button onclick="DrawingEngine.spawnShape('circle')" class="group relative p-2 rounded-lg text-slate-500 btn-press hover:bg-slate-200 dark:hover:bg-slate-800"><i data-lucide="circle" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Lingkaran</span></button>
+                        <button onclick="DrawingEngine.spawnShape('triangle')" class="group relative p-2 rounded-lg text-slate-500 btn-press hover:bg-slate-200 dark:hover:bg-slate-800"><i data-lucide="triangle" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Segitiga</span></button>
+                        <button onclick="DrawingEngine.spawnShape('star')" class="group relative p-2 rounded-lg text-slate-500 btn-press hover:bg-slate-200 dark:hover:bg-slate-800"><i data-lucide="star" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Bintang</span></button>
+                        <button onclick="DrawingEngine.spawnShape('hexagon')" class="group relative p-2 rounded-lg text-slate-500 btn-press hover:bg-slate-200 dark:hover:bg-slate-800"><i data-lucide="hexagon" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Segi Enam</span></button>
+                        <button onclick="DrawingEngine.spawnShape('arrow')" class="group relative p-2 rounded-lg text-slate-500 btn-press hover:bg-slate-200 dark:hover:bg-slate-800"><i data-lucide="arrow-right" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Panah</span></button>
+                        <button onclick="DrawingEngine.spawnShape('line')" class="group relative p-2 rounded-lg text-slate-500 btn-press hover:bg-slate-200 dark:hover:bg-slate-800"><i data-lucide="minus" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Garis</span></button>
+                    </div>
+
+                    <!-- Ketebalan -->
+                    <div class="group relative group-separator flex items-center gap-2 px-1 pr-3 min-w-[100px] shrink-0 pointer-events-auto">
+                        <i data-lucide="scaling" class="w-4 h-4 text-slate-400"></i>
+                        <input type="range" id="brush-size" min="1" max="40" value="3" class="w-full accent-primary">
+                        <span class="pro-tooltip">Ketebalan (Stroke Size)</span>
+                    </div>
+
+                    <!-- Aksi -->
+                    <div class="tools-container group-separator flex gap-1 pl-1 shrink-0 pointer-events-auto items-center">
+                        <button onclick="DrawingEngine.toggleBackground()" class="group relative p-2.5 rounded-lg text-slate-500 btn-press"><i data-lucide="layout-grid" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Ganti Latar & Grid</span></button>
+                        <input type="file" id="file-upload" accept="image/*" class="hidden" onchange="DrawingEngine.insertImage(event)">
+                        <button onclick="document.getElementById('file-upload').click()" class="group relative p-2.5 rounded-lg text-slate-500 btn-press"><i data-lucide="image-plus" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Impor Gambar</span></button>
+                        
+                        <button onclick="DrawingEngine.undo()" class="group relative p-2.5 rounded-lg text-slate-500 btn-press"><i data-lucide="undo" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Undo (Ctrl+Z)</span></button>
+                        <button onclick="DrawingEngine.redo()" class="group relative p-2.5 rounded-lg text-slate-500 btn-press"><i data-lucide="redo" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Redo (Ctrl+Y)</span></button>
+                        
+                        <button onclick="UI.openModal('modal-export')" class="group relative p-2.5 rounded-lg text-green-500 btn-press"><i data-lucide="download" class="w-5 h-5 pointer-events-none"></i><span class="pro-tooltip">Ekspor Resolusi Tinggi</span></button>
+                        <button onclick="UI.toggleFocusMode()" class="group relative p-2.5 rounded-lg text-slate-500 btn-press">
+                            <i data-lucide="maximize" id="icon-maximize" class="w-5 h-5 pointer-events-none"></i><i data-lucide="minimize" id="icon-minimize" class="w-5 h-5 hidden pointer-events-none"></i>
+                            <span class="pro-tooltip">Mode Fokus/Layar Penuh</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Advanced Image Filters -->
+                    <div id="filter-controls" class="group-separator hidden items-center gap-3 pl-3 pr-3 shrink-0 pointer-events-auto bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+                        <div class="group relative flex items-center gap-1">
+                            <i data-lucide="sun" class="w-4 h-4 text-slate-500"></i>
+                            <input type="range" id="filter-brightness" min="0" max="200" value="100" class="w-16 accent-primary" oninput="DrawingEngine.updateFilters()">
+                            <span class="pro-tooltip">Brightness</span>
+                        </div>
+                        <div class="group relative flex items-center gap-1">
+                            <i data-lucide="contrast" class="w-4 h-4 text-slate-500"></i>
+                            <input type="range" id="filter-contrast" min="0" max="200" value="100" class="w-16 accent-primary" oninput="DrawingEngine.updateFilters()">
+                            <span class="pro-tooltip">Contrast</span>
+                        </div>
+                        <div class="group relative flex items-center gap-1">
+                            <i data-lucide="droplet" class="w-4 h-4 text-slate-500"></i>
+                            <input type="range" id="filter-blur" min="0" max="20" value="0" class="w-16 accent-primary" oninput="DrawingEngine.updateFilters()">
+                            <span class="pro-tooltip">Blur Filter</span>
+                        </div>
+                    </div>
+
+                    <!-- Transparansi -->
+                    <div id="trace-controls" class="group relative group-separator hidden items-center gap-3 pl-3 shrink-0 pointer-events-auto">
+                        <div class="flex items-center gap-1">
+                            <i data-lucide="layers" class="w-4 h-4 text-primary"></i>
+                            <input type="range" id="trace-opacity" min="0" max="100" value="100" class="w-20 accent-primary" oninput="DrawingEngine.setTraceOpacity(this.value)">
+                        </div>
+                        <span class="pro-tooltip">Transparansi Objek (Opacity)</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 w-full bg-slate-200 dark:bg-slate-900 rounded-2xl overflow-auto relative shadow-inner border border-slate-200 dark:border-slate-700" id="print-area">
+                    <div id="canvas-wrapper" class="relative bg-pattern-plain mx-auto shadow-sm overflow-hidden" style="width: 100%; height: 100%; min-height: 60vh;">
+                        
+                        <!-- GUIDES LAYER (Snap to Object) -->
+                        <canvas id="guides-canvas" class="absolute inset-0 pointer-events-none" style="z-index: 35;"></canvas>
+
+                        <!-- DRAWING RASTER LAYER -->
+                        <canvas id="drawing-board" class="absolute inset-0 w-full h-full bg-transparent" style="z-index: 10;"></canvas>
+                        
+                        <!-- WADAH OBJEK LAYER DOM -->
+                        <div id="objects-layer" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 20;"></div>
+                        
+                        <!-- SELECTION UI -->
+                        <div id="selection-ui" class="absolute hidden transition-colors" style="z-index: 30; transform-origin: center;">
+                            <div class="absolute inset-0 border-2 border-dashed border-primary pointer-events-none" id="selection-border"></div>
+                            
+                            <div id="drag-overlay-obj" class="absolute inset-0 cursor-move pointer-events-auto"></div>
+                            
+                            <!-- TOMBOL GRUP (MUNCUL JIKA > 1 OBJEK DENGAN GRUP BERBEDA) -->
+                            <button onclick="DrawingEngine.groupSelected()" id="btn-group-obj" class="absolute -top-12 left-0 w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform pointer-events-auto cursor-pointer hidden border-2 border-white" title="Grup (Ctrl+G)">
+                                <i data-lucide="link" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+                            <!-- TOMBOL UNGRUP (MUNCUL JIKA ADA GRUP) -->
+                            <button onclick="DrawingEngine.ungroupSelected()" id="btn-ungroup-obj" class="absolute -top-12 left-10 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform pointer-events-auto cursor-pointer hidden border-2 border-white" title="Pisahkan Grup (Ctrl+Shift+G)">
+                                <i data-lucide="unlink" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+                            
+                            <!-- Multi-Select Group Delete -->
+                            <button id="group-delete-btn" onclick="DrawingEngine.deleteActiveObject()" class="absolute -top-4 -right-4 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform pointer-events-auto cursor-pointer border-2 border-white hidden" title="Hapus Grup">
+                                <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+                            
+                            <button onclick="DrawingEngine.deleteActiveObject()" id="single-delete-btn" class="absolute -top-4 -right-4 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform pointer-events-auto cursor-pointer border-2 border-white" title="Hapus Objek (Del)">
+                                <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+
+                            <button onclick="DrawingEngine.editActiveText()" id="btn-edit-obj" class="absolute -top-4 -left-4 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform pointer-events-auto cursor-pointer hidden border-2 border-white" title="Edit Teks">
+                                <i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+
+                            <div id="color-picker-obj" class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform pointer-events-auto cursor-pointer hidden border-2 border-white" title="Ubah Warna">
+                                <input type="color" id="trace-color-input" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="DrawingEngine.updateActiveColor(this.value)">
+                                <div id="trace-color-display" class="w-5 h-5 rounded-full pointer-events-none shadow-inner" style="background-color: #000;"></div>
+                            </div>
+
+                            <div id="rotate-obj" class="control-handle absolute -top-10 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white text-slate-700 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform pointer-events-auto cursor-grab border-2 border-white" title="Putar">
+                                <i data-lucide="rotate-cw" class="w-4 h-4 pointer-events-none"></i>
+                            </div>
+
+                            <div id="resize-obj" class="control-handle absolute -bottom-4 -right-4 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center shadow-xl cursor-nwse-resize active:scale-90 transition-transform pointer-events-auto border-2 border-white" title="Tarik untuk Ubah Ukuran (Tahan Shift = Constrain)">
+                                <i data-lucide="scaling" class="w-5 h-5 pointer-events-none"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-32 w-full shrink-0 block md:hidden"></div>
+            </div>
+
+            <!-- VIEW KATEGORI -->
+            <div id="view-categories" class="view-section hidden">
+                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-6">Master Kategori</h2>
+                <div class="bg-white dark:bg-darkSurface p-4 md:p-6 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800 mb-8">
+                    <form id="form-category" class="flex flex-col md:flex-row gap-3">
+                        <input type="hidden" id="cat-id">
+                        <input type="text" id="cat-name" required placeholder="Nama kategori baru..." class="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-primary outline-none transition-all">
+                        <button type="submit" class="px-6 py-3 bg-primary text-white rounded-xl font-medium btn-press shadow-lg shadow-primary/30">Simpan Kategori</button>
+                    </form>
+                </div>
+                <div class="w-full">
+                    <div class="hidden md:block overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkSurface shadow-soft">
+                        <table class="w-full text-left border-collapse">
+                            <thead><tr class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-sm"><th class="p-4 font-medium border-b border-slate-200 dark:border-slate-800 w-16 text-center">No</th><th class="p-4 font-medium border-b border-slate-200 dark:border-slate-800">Nama Kategori</th><th class="p-4 font-medium border-b border-slate-200 dark:border-slate-800 w-32 text-right">Aksi</th></tr></thead>
+                            <tbody id="table-cat-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="card-cat-container" class="grid grid-cols-1 md:hidden gap-3"></div>
+                </div>
+                <div class="h-32 w-full shrink-0 block md:hidden"></div>
+            </div>
+
+            <!-- VIEW PENGATURAN -->
+            <div id="view-settings" class="view-section hidden max-w-2xl mx-auto">
+                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-6">Pengaturan Aplikasi</h2>
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-darkSurface p-5 md:p-6 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800">
+                        <h3 class="text-lg font-bold mb-4 flex items-center"><i data-lucide="brush" class="w-5 h-5 mr-2 text-primary"></i> Personalisasi & Tema</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-500 mb-1">Nama Brand Aplikasi</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="setting-app-name" value="SketchPro" class="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-primary outline-none transition-all">
+                                    <button onclick="Settings.saveAppName()" class="px-4 py-3 bg-slate-200 dark:bg-slate-700 rounded-xl font-medium btn-press text-slate-700 dark:text-slate-200">Simpan</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-500 mb-1">Warna Tema Utama</label>
+                                <div class="flex items-center gap-4 p-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                    <input type="color" id="setting-color" value="#6366f1" class="w-10 h-10 rounded cursor-pointer border-0 bg-transparent" onchange="Settings.changeColor(this.value)">
+                                    <span class="text-sm font-medium" id="color-hex-display">#6366f1</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-darkSurface p-5 md:p-6 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800">
+                        <h3 class="text-lg font-bold mb-4 flex items-center"><i data-lucide="database" class="w-5 h-5 mr-2 text-primary"></i> Data & Pencadangan</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="Settings.exportExcel()" class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-primary/30 active:bg-primary/5 md:hover:bg-primary/5 transition-colors btn-press"><i data-lucide="download-cloud" class="w-8 h-8 text-primary mb-2"></i><span class="font-bold text-sm text-primary">Backup Data</span></button>
+                            <label class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 active:bg-slate-50 md:hover:bg-slate-50 dark:active:bg-slate-800 transition-colors btn-press cursor-pointer"><i data-lucide="upload-cloud" class="w-8 h-8 text-slate-500 mb-2"></i><span class="font-bold text-sm text-slate-600 dark:text-slate-300">Restore Data</span><input type="file" id="upload-excel" accept=".xlsx, .xls" class="hidden" onchange="Settings.importExcel(event)"></label>
+                        </div>
+                    </div>
+                    <div class="bg-red-50 dark:bg-red-900/10 p-5 md:p-6 rounded-2xl border border-red-100 dark:border-red-900/30">
+                        <h3 class="text-lg font-bold text-red-600 mb-2">Zona Berbahaya</h3>
+                        <button onclick="Settings.confirmReset()" class="px-4 py-3 bg-red-600 text-white rounded-xl font-medium btn-press w-full sm:w-auto shadow-lg shadow-red-600/30">Reset Aplikasi</button>
+                    </div>
+                </div>
+                <div class="h-32 w-full shrink-0 block md:hidden"></div>
+            </div>
+
+        </div> 
+    </main>
+
+    <nav class="md:hidden fixed bottom-0 left-0 w-full glass-nav z-40 pb-[env(safe-area-inset-bottom)]">
+        <div class="grid grid-cols-5 items-center h-16 px-1">
+            <a href="#" onclick="App.navigate('dashboard')" class="menu-item flex flex-col items-center justify-center w-full h-full text-slate-400 active-menu" data-target="dashboard"><i data-lucide="layout-dashboard" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i><span class="text-[10px] font-medium">Dasbor</span></a>
+            <a href="#" onclick="App.navigate('canvas')" class="menu-item flex flex-col items-center justify-center w-full h-full text-slate-400" data-target="canvas"><i data-lucide="palette" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i><span class="text-[10px] font-medium">Kanvas</span></a>
+            <div class="relative w-full h-full flex justify-center -mt-6">
+                <button onclick="UI.openNewCanvasModal()" class="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/40 btn-press border-4 border-slate-50 dark:border-darkBg"><i data-lucide="plus" class="w-6 h-6"></i></button>
+            </div>
+            <a href="#" onclick="App.navigate('categories')" class="menu-item flex flex-col items-center justify-center w-full h-full text-slate-400" data-target="categories"><i data-lucide="tags" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i><span class="text-[10px] font-medium">Kategori</span></a>
+            <a href="#" onclick="App.navigate('settings')" class="menu-item flex flex-col items-center justify-center w-full h-full text-slate-400" data-target="settings"><i data-lucide="settings" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i><span class="text-[10px] font-medium">Seting</span></a>
+        </div>
+    </nav>
+
+    <!-- ============================================== -->
+    <!-- FILE: source/assets/js/app.js START -->
+    <script>
+        const UI = {
+            isFocusMode: false,
+            init() {
+                lucide.createIcons();
+                this.checkTheme();
+                this.setupSwipeToClose('save-canvas-sheet', 'modal-save-canvas', 'save-drag-handle');
+                this.initDragScroll();
+                this.initToolbarDockDrag();
+                const savedColor = localStorage.getItem('sketchpro_color');
+                if(savedColor) Settings.changeColor(savedColor, false);
+                const savedName = localStorage.getItem('sketchpro_name');
+                if(savedName) {
+                    document.querySelectorAll('.app-name-display').forEach(el => el.textContent = savedName);
+                    document.getElementById('setting-app-name').value = savedName;
+                }
+            },
+            
+            showLoading(msg) {
+                document.getElementById('loading-text').textContent = msg || 'Memproses...';
+                const el = document.getElementById('loading-overlay');
+                el.classList.remove('hidden'); el.classList.add('flex');
+                setTimeout(() => el.classList.remove('opacity-0'), 10);
+            },
+            hideLoading() {
+                const el = document.getElementById('loading-overlay');
+                el.classList.add('opacity-0');
+                setTimeout(() => { el.classList.remove('flex'); el.classList.add('hidden'); }, 300);
+            },
+
+            toggleLayerPanel() {
+                const panel = document.getElementById('layer-panel');
+                panel.classList.toggle('open');
+                if(panel.classList.contains('open')) DrawingEngine.syncLayerPanel();
+            },
+
+            initDragScroll() {
+                const slider = document.getElementById('main-toolbar');
+                if(!slider) return;
+                let isDown = false; let scrollX, scrollY, scrollLeft, scrollTop;
+                let startMouseX, startMouseY;
+                
+                slider.addEventListener('pointerdown', (e) => {
+                    if(e.target.closest('.drag-handle-cont')) return; 
+                    isDown = true; 
+                    startMouseX = e.pageX; startMouseY = e.pageY;
+                    scrollX = e.pageX - slider.offsetLeft; scrollY = e.pageY - slider.offsetTop;
+                    scrollLeft = slider.scrollLeft; scrollTop = slider.scrollTop;
+                });
+                slider.addEventListener('pointerleave', () => { isDown = false; slider.classList.remove('cursor-grabbing'); });
+                slider.addEventListener('pointerup', () => { isDown = false; slider.classList.remove('cursor-grabbing'); });
+                slider.addEventListener('pointermove', (e) => {
+                    if(!isDown) return; 
+                    if (Math.abs(e.pageX - startMouseX) > 3 || Math.abs(e.pageY - startMouseY) > 3) {
+                        slider.classList.add('cursor-grabbing');
+                        e.preventDefault();
+                        const x = e.pageX - slider.offsetLeft; const y = e.pageY - slider.offsetTop;
+                        slider.scrollLeft = scrollLeft - ((x - scrollX) * 1.5);
+                        slider.scrollTop = scrollTop - ((y - scrollY) * 1.5);
+                    }
+                });
+            },
+
+            initToolbarDockDrag() {
+                const toolbar = document.getElementById('main-toolbar');
+                const handle = document.getElementById('toolbar-drag-handle');
+                if(!toolbar || !handle) return;
+
+                let isDragging = false; let startX, startY, initialX, initialY;
+
+                const startDrag = (e) => {
+                    if (!UI.isFocusMode) return; 
+                    isDragging = true;
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    startX = clientX; startY = clientY;
+                    const rect = toolbar.getBoundingClientRect();
+                    toolbar.style.left = rect.left + 'px'; toolbar.style.top = rect.top + 'px'; toolbar.style.bottom = 'auto'; toolbar.style.right = 'auto'; toolbar.style.transform = 'none'; 
+                    initialX = rect.left; initialY = rect.top;
+                    toolbar.classList.add('is-dragging'); document.body.style.userSelect = 'none';
+                };
+
+                const doDrag = (e) => {
+                    if(!isDragging) return; e.preventDefault(); 
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    toolbar.style.left = (initialX + (clientX - startX)) + 'px'; toolbar.style.top = (initialY + (clientY - startY)) + 'px';
+                };
+
+                const stopDrag = () => {
+                    if(!isDragging) return;
+                    isDragging = false; toolbar.classList.remove('is-dragging'); document.body.style.userSelect = '';
+                    const rect = toolbar.getBoundingClientRect();
+                    const cx = rect.left + rect.width / 2; const cy = rect.top + rect.height / 2;
+                    const ww = window.innerWidth; const wh = window.innerHeight;
+                    const distTop = cy; const distBottom = wh - cy; const distLeft = cx; const distRight = ww - cx;
+                    const minDist = Math.min(distTop, distBottom, distLeft, distRight);
+                    
+                    toolbar.style.left = ''; toolbar.style.top = ''; toolbar.style.bottom = ''; toolbar.style.right = ''; toolbar.style.transform = '';
+                    if (minDist === distBottom) toolbar.setAttribute('data-dock', 'bottom');
+                    else if (minDist === distTop) toolbar.setAttribute('data-dock', 'top');
+                    else if (minDist === distLeft) toolbar.setAttribute('data-dock', 'left');
+                    else if (minDist === distRight) toolbar.setAttribute('data-dock', 'right');
+                };
+
+                handle.addEventListener('pointerdown', startDrag); window.addEventListener('pointermove', doDrag, {passive: false}); window.addEventListener('pointerup', stopDrag);
+                handle.addEventListener('touchstart', startDrag, {passive: false}); window.addEventListener('touchmove', doDrag, {passive: false}); window.addEventListener('touchend', stopDrag);
+            },
+
+            openNewCanvasModal() {
+                document.getElementById('new-canvas-w').value = window.innerWidth;
+                document.getElementById('new-canvas-h').value = window.innerHeight > 600 ? window.innerHeight : 600;
+                this.openModal('modal-new-canvas');
+            },
+            showToast(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                const colors = type === 'success' ? 'bg-green-500 shadow-green-500/30' : 'bg-red-500 shadow-red-500/30';
+                toast.className = `${colors} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-fade-up pointer-events-auto z-[100050]`;
+                toast.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-5 h-5"></i> <span class="font-medium text-sm">${message}</span>`;
+                container.appendChild(toast); lucide.createIcons({root: toast});
+                setTimeout(() => { toast.classList.replace('animate-fade-up', 'opacity-0'); toast.style.transition = 'opacity 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3000);
+            },
+            toggleTheme() {
+                const html = document.documentElement;
+                if (html.classList.contains('dark')) { html.classList.remove('dark'); localStorage.setItem('theme', 'light'); } 
+                else { html.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
+            },
+            checkTheme() {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            },
+            openModal(modalId, sheetId = null) {
+                const modal = document.getElementById(modalId);
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+                if(sheetId) setTimeout(() => document.getElementById(sheetId).classList.remove('translate-y-full'), 10);
+            },
+            closeModal(modalId, sheetId = null) {
+                if(sheetId) {
+                    document.getElementById(sheetId).classList.add('translate-y-full');
+                    setTimeout(() => { const modal = document.getElementById(modalId); modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300);
+                } else {
+                    const modal = document.getElementById(modalId); modal.classList.add('hidden'); modal.classList.remove('flex');
+                }
+            },
+            setupSwipeToClose(sheetId, modalId, handleId) {
+                const sheet = document.getElementById(sheetId); const handle = document.getElementById(handleId);
+                if(!sheet || !handle) return;
+                let startY = 0, currentY = 0, isDragging = false;
+                handle.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; isDragging = true; sheet.style.transition = 'none'; }, {passive: true});
+                handle.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return; currentY = e.touches[0].clientY; const diff = currentY - startY;
+                    if (diff > 0) sheet.style.transform = `translateY(${diff}px)`;
+                }, {passive: true});
+                handle.addEventListener('touchend', () => {
+                    isDragging = false; sheet.style.transition = 'transform 0.3s ease-out';
+                    if (currentY - startY > 100) { sheet.style.transform = ''; this.closeModal(modalId, sheetId); } 
+                    else sheet.style.transform = 'translateY(0)';
+                });
+            },
+            openSaveCanvasModal() {
+                if(DrawingEngine.isBlank && DrawingEngine.objects.length === 0) { this.showToast('Kanvas masih kosong!', 'error'); return; }
+                const select = document.getElementById('canvas-category'); select.innerHTML = '<option value="">Pilih Kategori...</option>';
+                DB.categories.forEach(cat => select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
+                const activeId = document.getElementById('canvas-id').value;
+                if(!activeId) document.getElementById('canvas-title').value = 'Sketsa ' + new Date().toLocaleDateString();
+                this.openModal('modal-save-canvas', 'save-canvas-sheet');
+            },
+            toggleFocusMode() {
+                this.isFocusMode = !this.isFocusMode;
+                const toolbar = document.getElementById('main-toolbar');
+                if(this.isFocusMode) {
+                    document.body.classList.add('canvas-focus');
+                    document.getElementById('icon-maximize').classList.add('hidden'); document.getElementById('icon-minimize').classList.remove('hidden');
+                    this.showToast('Mode Fokus Diaktifkan (Tekan ESC untuk keluar)');
+                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(err => console.log(err));
+                } else {
+                    document.body.classList.remove('canvas-focus');
+                    document.getElementById('icon-maximize').classList.remove('hidden'); document.getElementById('icon-minimize').classList.add('hidden');
+                    if (toolbar) { toolbar.setAttribute('data-dock', 'bottom'); toolbar.style.left = ''; toolbar.style.top = ''; toolbar.style.bottom = ''; toolbar.style.right = ''; toolbar.style.transform = ''; }
+                    if (document.fullscreenElement) document.exitFullscreen().catch(err => console.log(err));
+                }
+                setTimeout(() => DrawingEngine.resize(), 100);
+            }
+        };
+
+        const DB = {
+            db: null, categories: [], drawings: [],
+            init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open('SketchProDB', 1);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('categories')) db.createObjectStore('categories', { keyPath: 'id' });
+                        if (!db.objectStoreNames.contains('drawings')) {
+                            const drawingStore = db.createObjectStore('drawings', { keyPath: 'id' }); drawingStore.createIndex('categoryId', 'categoryId', { unique: false });
+                        }
+                    };
+                    request.onsuccess = async (e) => {
+                        this.db = e.target.result; await this.loadAll();
+                        if(this.categories.length === 0) {
+                            await this.saveCategory({ id: Date.now().toString(), name: 'Ide Bisnis' });
+                            await this.saveCategory({ id: (Date.now()+1).toString(), name: 'Desain UI/UX' });
+                            await this.loadAll();
+                        }
+                        resolve();
+                    };
+                    request.onerror = (e) => reject(e);
+                });
+            },
+            async loadAll() { this.categories = await this.getAll('categories'); this.drawings = await this.getAll('drawings'); this.drawings.sort((a, b) => b.updatedAt - a.updatedAt); },
+            getAll(storeName) { return new Promise((resolve) => { const tx = this.db.transaction(storeName, 'readonly'); const request = tx.objectStore(storeName).getAll(); request.onsuccess = () => resolve(request.result); }); },
+            save(storeName, data) { return new Promise((resolve) => { const tx = this.db.transaction(storeName, 'readwrite'); tx.objectStore(storeName).put(data); tx.oncomplete = () => this.loadAll().then(resolve); }); },
+            delete(storeName, id) { return new Promise((resolve) => { const tx = this.db.transaction(storeName, 'readwrite'); tx.objectStore(storeName).delete(id); tx.oncomplete = () => this.loadAll().then(resolve); }); },
+            saveCategory(cat) { return this.save('categories', cat); }, deleteCategory(id) { return this.delete('categories', id); },
+            saveDrawing(drawing) { return this.save('drawings', drawing); }, deleteDrawing(id) { return this.delete('drawings', id); },
+            clearDB() { return new Promise((resolve) => { const req1 = this.db.transaction('categories', 'readwrite').objectStore('categories').clear(); const req2 = this.db.transaction('drawings', 'readwrite').objectStore('drawings').clear(); req2.onsuccess = () => { this.categories = []; this.drawings = []; resolve(); }; }); }
+        };
+
+        let chartInstance = null; let deleteTarget = { type: null, id: null };
+
+        const Logic = {
+            renderCategories() {
+                const tbody = document.getElementById('table-cat-body'); const cardContainer = document.getElementById('card-cat-container'); tbody.innerHTML = ''; cardContainer.innerHTML = '';
+                if (DB.categories.length === 0) { const emptyHtml = `<div class="text-center p-6 text-slate-500 text-sm">Belum ada kategori.</div>`; tbody.innerHTML = `<tr><td colspan="3">${emptyHtml}</td></tr>`; cardContainer.innerHTML = emptyHtml; return; }
+                DB.categories.forEach((cat, index) => {
+                    const tr = document.createElement('tr'); tr.className = 'border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors';
+                    tr.innerHTML = `<td class="p-4 text-center text-slate-500">${index + 1}</td><td class="p-4 font-medium">${cat.name}</td><td class="p-4 text-right"><button onclick="Logic.editCategory('${cat.id}')" class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg btn-press"><i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i></button> <button onclick="Logic.confirmDelete('categories', '${cat.id}')" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg btn-press"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>`;
+                    tbody.appendChild(tr);
+                    const card = document.createElement('div'); card.className = 'bg-white dark:bg-darkSurface p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 flex justify-between items-center';
+                    card.innerHTML = `<span class="font-medium">${cat.name}</span><div class="flex gap-1"><button onclick="Logic.editCategory('${cat.id}')" class="p-2 text-blue-500 active:bg-blue-50 md:hover:bg-blue-50 dark:active:bg-blue-900/20 rounded-lg btn-press"><i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i></button><button onclick="Logic.confirmDelete('categories', '${cat.id}')" class="p-2 text-red-500 active:bg-red-50 md:hover:bg-red-50 dark:active:bg-red-900/20 rounded-lg btn-press"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`;
+                    cardContainer.appendChild(card);
+                }); lucide.createIcons();
+            },
+            editCategory(id) { const cat = DB.categories.find(c => c.id === id); if(cat) { document.getElementById('cat-id').value = cat.id; document.getElementById('cat-name').value = cat.name; document.getElementById('cat-name').focus(); } },
+            renderGallery(searchTerm = '') {
+                const grid = document.getElementById('gallery-grid'); grid.innerHTML = '';
+                let filtered = DB.drawings; if(searchTerm) filtered = filtered.filter(d => d.title.toLowerCase().includes(searchTerm.toLowerCase()));
+                if (filtered.length === 0) { grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 flex flex-col items-center"><i data-lucide="image-off" class="w-12 h-12 mb-3 opacity-20"></i><p>Belum ada karya yang tersimpan.</p></div>`; lucide.createIcons(); this.updateChart(); return; }
+                filtered.forEach(draw => {
+                    const catName = DB.categories.find(c => c.id === draw.categoryId)?.name || 'Tanpa Kategori';
+                    const date = new Date(draw.updatedAt).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'});
+                    const card = document.createElement('div'); card.className = 'bg-white dark:bg-darkSurface rounded-2xl overflow-hidden shadow-soft border border-slate-100 dark:border-slate-800 group hover:shadow-xl transition-all cursor-pointer flex flex-col';
+                    card.innerHTML = `<div class="aspect-video bg-white relative overflow-hidden border-b border-slate-100 dark:border-slate-800" onclick="Logic.openDrawing('${draw.id}')"><img src="${draw.dataURL}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" alt="${draw.title}"><div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><span class="px-4 py-2 bg-white/20 backdrop-blur-md text-white rounded-xl font-medium text-sm border border-white/30"><i data-lucide="edit-3" class="w-4 h-4 inline mr-1"></i> Lanjutkan</span></div></div><div class="p-4 flex-1 flex flex-col justify-between"><div><span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-md mb-2 inline-block">${catName}</span><h3 class="font-bold text-slate-800 dark:text-slate-100 line-clamp-1">${draw.title}</h3><p class="text-xs text-slate-500 mt-1"><i data-lucide="clock" class="w-3 h-3 inline"></i> ${date}</p></div><div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-100 dark:border-slate-800"><button onclick="Logic.downloadImage('${draw.id}')" class="text-slate-400 hover:text-primary transition-colors btn-press"><i data-lucide="download" class="w-4 h-4 pointer-events-none"></i></button><button onclick="Logic.shareDrawing('${draw.id}')" class="text-slate-400 hover:text-blue-500 transition-colors btn-press"><i data-lucide="share-2" class="w-4 h-4 pointer-events-none"></i></button><button onclick="Logic.confirmDelete('drawings', '${draw.id}')" class="text-slate-400 hover:text-red-500 transition-colors btn-press"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div></div>`;
+                    grid.appendChild(card);
+                }); lucide.createIcons(); this.updateChart();
+            },
+            openDrawing(id) { const draw = DB.drawings.find(d => d.id === id); if(draw) { document.getElementById('canvas-id').value = draw.id; document.getElementById('canvas-title').value = draw.title; App.navigate('canvas'); setTimeout(() => DrawingEngine.loadImage(draw.dataURL, false), 50); } },
+            downloadImage(id) { const draw = DB.drawings.find(d => d.id === id); if(!draw) return; const link = document.createElement('a'); link.download = `${draw.title}.png`; link.href = draw.dataURL; link.click(); },
+            async shareDrawing(id) {
+                const draw = DB.drawings.find(d => d.id === id); if(!draw) return;
+                if (navigator.share) { try { const res = await fetch(draw.dataURL); const blob = await res.blob(); const file = new File([blob], `${draw.title}.png`, { type: 'image/png' }); await navigator.share({ title: draw.title, text: 'Lihat karya saya dari SketchPro!', files: [file] }); } catch (err) { console.log('Share dibatalkan', err); } } else UI.showToast('Fitur Share tidak didukung', 'error');
+            },
+            confirmDelete(type, id) { deleteTarget = { type, id }; UI.openModal('modal-delete'); },
+            async executeDelete() {
+                if(deleteTarget.type === 'categories') { if(DB.drawings.some(d => d.categoryId === deleteTarget.id)) { UI.closeModal('modal-delete'); UI.showToast('Kategori sedang digunakan!', 'error'); return; } await DB.deleteCategory(deleteTarget.id); this.renderCategories(); UI.showToast('Kategori dihapus'); } 
+                else if(deleteTarget.type === 'drawings') { await DB.deleteDrawing(deleteTarget.id); this.renderGallery(); UI.showToast('Karya dihapus'); }
+                UI.closeModal('modal-delete'); deleteTarget = {type: null, id: null};
+            },
+            updateChart() {
+                const ctx = document.getElementById('chart-dashboard'); if(!ctx) return;
+                const dataCount = DB.categories.map(cat => DB.drawings.filter(d => d.categoryId === cat.id).length);
+                const labels = DB.categories.map(cat => cat.name);
+                const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
+                if(chartInstance) { chartInstance.data.labels = labels; chartInstance.data.datasets[0].data = dataCount; chartInstance.data.datasets[0].backgroundColor = `${primaryColor}80`; chartInstance.data.datasets[0].borderColor = primaryColor; chartInstance.update(); } 
+                else { chartInstance = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Jumlah Karya', data: dataCount, backgroundColor: `${primaryColor}80`, borderColor: primaryColor, borderWidth: 2, borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } } }); }
+            }
+        };
+
+        const DrawingEngine = {
+            canvas: null, ctx: null, isDrawing: false, color: '#000000', size: 3, tool: 'pen', isBlank: true,
+            history: [], historyStep: -1, maxHistory: 30, // Memory Opt
+            customSize: null, bgPatterns: ['plain', 'grid', 'dot'], bgIndex: 0,
+            
+            // DELTA HISTORY ENGINE (ZERO LAG) + SYNCHRONOUS CACHING (ANTI FLICKER)
+            baseRasterData: '', baseImage: null, currentStrokes: [], currentStroke: null, renderPending: false,
+            
+            // Multi-Layer System
+            objects: [], activeObjectIds: [], shapeMode: 'fill', copiedObject: null, dpr: 1,
+
+            // Guides
+            guidesCanvas: null, guidesCtx: null,
+
+            init() {
+                this.canvas = document.getElementById('drawing-board');
+                this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+                this.guidesCanvas = document.getElementById('guides-canvas');
+                this.guidesCtx = this.guidesCanvas.getContext('2d');
+                this.dpr = window.devicePixelRatio || 1;
+                
+                let resizeRAF;
+                const resizeObserver = new ResizeObserver((entries) => {
+                    window.requestAnimationFrame(() => {
+                        if (!Array.isArray(entries) || !entries.length) return;
+                        if (this.canvas.offsetParent !== null) { clearTimeout(resizeRAF); resizeRAF = setTimeout(() => { this.resize(); }, 50); }
+                    });
+                });
+                if (document.getElementById('print-area')) resizeObserver.observe(document.getElementById('print-area'));
+
+                // HIGH-END: Pointer Events untuk sensitivitas dan akurasi tinggi
+                this.canvas.addEventListener('pointerdown', (e) => { if (this.tool === 'move-image') { this.deselect(); } else { this.startPosition(e); } });
+                this.canvas.addEventListener('pointerup', () => this.endPosition());
+                this.canvas.addEventListener('pointermove', (e) => { e.preventDefault(); this.draw(e); });
+                this.canvas.addEventListener('pointerleave', () => this.endPosition());
+                this.canvas.addEventListener('pointercancel', () => this.endPosition());
+
+                document.getElementById('objects-layer').addEventListener('pointerdown', (e) => { if (e.target.id === 'objects-layer') this.deselect(); });
+
+                // VECTOR ERASER: Klik ganda pada wrapper untuk menghapus objek
+                document.getElementById('canvas-wrapper').addEventListener('dblclick', (e) => {
+                    if (this.tool === 'eraser') {
+                        const pos = this.getMousePos(e);
+                        // Hit test dari layer paling atas
+                        for (let i = this.objects.length - 1; i >= 0; i--) {
+                            const obj = this.objects[i];
+                            if (!obj.visible || obj.locked) continue;
+                            
+                            // Rotasikan mouse point kembali ke axis lokal objek
+                            const cx = obj.x + obj.w / 2;
+                            const cy = obj.y + obj.h / 2;
+                            const dx = pos.x - cx;
+                            const dy = pos.y - cy;
+                            const angle = -(obj.rotation || 0);
+                            
+                            const rx = dx * Math.cos(angle) - dy * Math.sin(angle);
+                            const ry = dx * Math.sin(angle) + dy * Math.cos(angle);
+                            
+                            // AABB local test
+                            if (rx >= -obj.w/2 && rx <= obj.w/2 && ry >= -obj.h/2 && ry <= obj.h/2) {
+                                this.objects.splice(i, 1);
+                                this.syncDOM();
+                                this.saveState();
+                                UI.showToast('Objek vektor dihapus.');
+                                break; 
+                            }
+                        }
+                    }
+                });
+
+                // Context Menu
+                document.getElementById('canvas-wrapper').addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if(this.activeObjectIds.length > 0) {
+                        const menu = document.getElementById('context-menu');
+                        menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px';
+                        menu.classList.remove('hidden');
+                    }
+                });
+                document.addEventListener('pointerdown', (e) => { if(!e.target.closest('#context-menu')) document.getElementById('context-menu').classList.add('hidden'); });
+
+                this.initSelectionControls();
+
+                this.setColor('#000000');
+                document.getElementById('brush-size').addEventListener('input', (e) => {
+                    this.size = e.target.value;
+                    if (this.activeObjectIds.length === 1) {
+                        const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                        if (obj && obj.category === 'shape') {
+                            obj.strokeSize = this.size; obj.src = this.generateShapeBase64(obj.type, obj.color, obj.mode, obj.strokeSize);
+                            this.updateObjectDOM(obj); this.saveState();
+                        }
+                    }
+                });
+
+                // LOGIKA AUTO-RESTORE SAAT REFRESH (JSON)
+                const draft = localStorage.getItem('sketchpro_draft');
+                if(draft) { 
+                    let parsed = null; try { parsed = JSON.parse(draft); } catch(e) {}
+                    if (parsed && parsed.baseRaster !== undefined) {
+                        this.currentStrokes = parsed.strokes || [];
+                        this.objects = parsed.objects || [];
+                        this.bgIndex = parsed.bgIndex || 0; // RECOVER BACKGROUND STATE
+                        this.updateBaseRaster(parsed.baseRaster, () => {
+                            this.renderCanvas();
+                            this.syncDOM();
+                        });
+                    } else {
+                        this.currentStrokes = []; this.objects = [];
+                        this.bgIndex = 0;
+                        this.updateBaseRaster(draft, () => {
+                            this.renderCanvas();
+                            this.syncDOM();
+                        });
+                    }
+                    document.getElementById('canvas-wrapper').className = `relative bg-pattern-${this.bgPatterns[this.bgIndex]} mx-auto shadow-sm overflow-hidden`;
+                    
+                    this.isBlank = localStorage.getItem('sketchpro_is_blank') === 'true';
+                    this.history.push(draft); this.historyStep = 0; 
+                    
+                    const activeId = localStorage.getItem('sketchpro_active_id');
+                    const activeTitle = localStorage.getItem('sketchpro_active_title');
+                    if (activeId) document.getElementById('canvas-id').value = activeId;
+                    if (activeTitle) document.getElementById('canvas-title').value = activeTitle;
+                } else { 
+                    setTimeout(() => this.saveState(), 100); 
+                }
+            },
+
+            // Anti-Flickering Helper: Load base raster memory-synchronous
+            updateBaseRaster(dataUrl, callback) {
+                this.baseRasterData = dataUrl;
+                if (!dataUrl || dataUrl.length <= 10) {
+                    this.baseImage = null;
+                    if (callback) callback();
+                    return;
+                }
+                const img = new Image();
+                img.onload = () => {
+                    this.baseImage = img;
+                    if (callback) callback();
+                };
+                img.src = dataUrl;
+            },
+
+            resize() {
+                const wrapper = document.getElementById('canvas-wrapper');
+                const parent = document.getElementById('print-area');
+                if (!parent || !wrapper) return;
+
+                let cssW, cssH;
+                if (this.customSize) {
+                    cssW = this.customSize.w; cssH = this.customSize.h;
+                    wrapper.style.width = cssW + 'px'; wrapper.style.height = cssH + 'px'; wrapper.style.minHeight = 'auto';
+                } else {
+                    const rect = parent.getBoundingClientRect();
+                    cssW = rect.width; cssH = rect.height;
+                    wrapper.style.width = '100%'; wrapper.style.height = '100%';
+                }
+                
+                if (cssW === 0 || cssH === 0) return; 
+
+                // DPI Scaling
+                this.canvas.width = cssW * this.dpr; this.canvas.height = cssH * this.dpr;
+                this.canvas.style.width = cssW + 'px'; this.canvas.style.height = cssH + 'px';
+                this.ctx.scale(this.dpr, this.dpr);
+                
+                this.guidesCanvas.width = cssW * this.dpr; this.guidesCanvas.height = cssH * this.dpr;
+                this.guidesCanvas.style.width = cssW + 'px'; this.guidesCanvas.style.height = cssH + 'px';
+                this.guidesCtx.scale(this.dpr, this.dpr);
+
+                this.renderCanvas();
+            },
+
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return { x: e.clientX - rect.left, y: e.clientY - rect.top, pressure: e.pressure || 1 };
+            },
+
+            // --- BEZIER SMOOTHING & DELTA HISTORY ENGINE ---
+            startPosition(e) {
+                this.isDrawing = true;
+                const pos = this.getMousePos(e);
+                this.currentStroke = { tool: this.tool, color: this.color, size: this.size, points: [pos] };
+                this.renderCanvas();
+            },
+
+            draw(e) {
+                if (!this.isDrawing) return;
+                this.currentStroke.points.push(this.getMousePos(e));
+                
+                // Debounce rendering frame to avoid redundant calculation & ensure butter smooth performance
+                if (!this.renderPending) {
+                    this.renderPending = true;
+                    requestAnimationFrame(() => {
+                        this.renderCanvas();
+                        this.renderPending = false;
+                    });
+                }
+            },
+
+            endPosition() {
+                if(!this.isDrawing) return;
+                this.isDrawing = false;
+                if (this.currentStroke && this.currentStroke.points.length > 0) {
+                    this.currentStrokes.push(this.currentStroke);
+                    this.currentStroke = null;
+                    this.isBlank = false;
+                    
+                    // Bake if too many strokes to prevent slow render
+                    if (this.currentStrokes.length >= 5) {
+                        // Pastikan frame digambar utuh sebelum dibake menjadi dataUrl
+                        this.renderCanvas(); 
+                        const dataUrl = this.canvas.toDataURL();
+                        this.updateBaseRaster(dataUrl, () => {
+                            this.currentStrokes = [];
+                            this.saveState();
+                        });
+                    } else {
+                        this.saveState();
+                    }
+                }
+            },
+
+            renderCanvas() {
+                this.ctx.clearRect(0, 0, this.canvas.width / this.dpr, this.canvas.height / this.dpr);
+                
+                // Menggambar Base Raster secara SINKRON! Bebas Flicker!
+                if (this.baseImage) {
+                    this.ctx.drawImage(this.baseImage, 0, 0, this.canvas.width / this.dpr, this.canvas.height / this.dpr);
+                }
+                
+                this.drawStrokes();
+            },
+
+            drawStrokes() {
+                const all = [...this.currentStrokes];
+                if (this.currentStroke) all.push(this.currentStroke);
+                
+                all.forEach(stroke => {
+                    if(stroke.points.length === 0) return;
+                    this.ctx.lineWidth = stroke.size;
+                    this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round';
+                    this.ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+                    this.ctx.strokeStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
+
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+                    
+                    if (stroke.points.length === 1) {
+                        this.ctx.lineTo(stroke.points[0].x + 0.1, stroke.points[0].y);
+                    } else {
+                        // QUADRATIC BEZIER SMOOTHING
+                        for (let i = 1; i < stroke.points.length - 1; i++) {
+                            const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
+                            const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
+                            this.ctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+                        }
+                        const last = stroke.points[stroke.points.length - 1];
+                        this.ctx.lineTo(last.x, last.y);
+                    }
+                    this.ctx.stroke();
+                });
+                this.ctx.globalCompositeOperation = 'source-over';
+            },
+
+            saveState() {
+                this.historyStep++;
+                if(this.history.length > this.maxHistory) { this.history.shift(); this.historyStep--; }
+                if (this.historyStep < this.history.length) this.history.length = this.historyStep;
+                
+                const state = {
+                    baseRaster: this.baseRasterData,
+                    strokes: JSON.parse(JSON.stringify(this.currentStrokes)),
+                    objects: JSON.parse(JSON.stringify(this.objects)),
+                    bgIndex: this.bgIndex
+                };
+                
+                const currentData = JSON.stringify(state);
+                this.history.push(currentData);
+                
+                localStorage.setItem('sketchpro_draft', currentData);
+                localStorage.setItem('sketchpro_is_blank', this.isBlank);
+                localStorage.setItem('sketchpro_active_id', document.getElementById('canvas-id').value || '');
+                localStorage.setItem('sketchpro_active_title', document.getElementById('canvas-title').value || '');
+            },
+            
+            undo() { 
+                if (this.activeObjectIds.length > 0) { this.deselect(); UI.showToast('Seleksi dilepas.'); return; }
+                if (this.historyStep > 0) { 
+                    this.historyStep--; 
+                    const state = JSON.parse(this.history[this.historyStep]);
+                    this.currentStrokes = state.strokes || [];
+                    this.objects = state.objects || [];
+                    this.bgIndex = state.bgIndex || 0;
+                    document.getElementById('canvas-wrapper').className = `relative bg-pattern-${this.bgPatterns[this.bgIndex]} mx-auto shadow-sm overflow-hidden`;
+                    
+                    this.updateBaseRaster(state.baseRaster, () => {
+                        this.renderCanvas(); this.syncDOM();
+                    });
+                } 
+            },
+            
+            redo() { 
+                if (this.historyStep < this.history.length - 1) { 
+                    this.historyStep++; 
+                    const state = JSON.parse(this.history[this.historyStep]);
+                    this.currentStrokes = state.strokes || [];
+                    this.objects = state.objects || [];
+                    this.bgIndex = state.bgIndex || 0;
+                    document.getElementById('canvas-wrapper').className = `relative bg-pattern-${this.bgPatterns[this.bgIndex]} mx-auto shadow-sm overflow-hidden`;
+                    
+                    this.updateBaseRaster(state.baseRaster, () => {
+                        this.renderCanvas(); this.syncDOM();
+                    });
+                } 
+            },
+            
+            setColor(hex) {
+                this.color = hex;
+                document.getElementById('custom-color-picker').value = hex;
+                if (this.activeObjectIds.length > 0) {
+                    this.updateActiveColor(hex);
+                    if (this.tool !== 'move-image') this.setTool('move-image');
+                } else {
+                    if(this.tool === 'eraser' || this.tool === 'move-image') this.setTool('pen');
+                }
+            },
+
+            setTool(toolName) {
+                this.tool = toolName;
+                ['pen', 'eraser', 'move-image'].forEach(t => {
+                    const btn = document.getElementById(`tool-${t}`);
+                    if (btn) btn.className = t === toolName ? 'p-2.5 rounded-lg tool-active btn-press transition-colors' : 'p-2.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors';
+                });
+
+                const layer = document.getElementById('objects-layer');
+                layer.style.pointerEvents = (toolName === 'move-image') ? 'auto' : 'none';
+                if(toolName !== 'move-image') this.deselect();
+                
+                Array.from(layer.querySelectorAll('.canvas-object')).forEach(el => {
+                    const obj = this.objects.find(o => o.id === el.id);
+                    if(obj && obj.locked) el.style.pointerEvents = 'none';
+                    else el.style.pointerEvents = toolName === 'move-image' ? 'auto' : 'none';
+                });
+            },
+            
+            toggleShapeMode() {
+                this.shapeMode = this.shapeMode === 'fill' ? 'outline' : 'fill';
+                const btn = document.getElementById('btn-shape-mode');
+                if (this.shapeMode === 'fill') {
+                    btn.innerHTML = 'ISI<span class="pro-tooltip">Mode Bentuk: Isi/Garis</span>'; 
+                    btn.className = 'group relative p-2 rounded-lg text-primary bg-primary/10 border border-primary/20 font-bold text-xs btn-press hover:bg-primary/20';
+                } else {
+                    btn.innerHTML = 'GARIS<span class="pro-tooltip">Mode Bentuk: Isi/Garis</span>'; 
+                    btn.className = 'group relative p-2 rounded-lg text-slate-500 bg-transparent border border-slate-300 dark:border-slate-600 font-bold text-xs btn-press hover:bg-slate-100 dark:hover:bg-slate-800';
+                }
+                
+                if (this.activeObjectIds.length === 1) {
+                    const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    if (obj && obj.category === 'shape') {
+                        obj.mode = this.shapeMode; obj.src = this.generateShapeBase64(obj.type, obj.color, obj.mode, obj.strokeSize);
+                        this.updateObjectDOM(obj); this.saveState();
+                    }
+                } else {
+                    UI.showToast(`Mode Bentuk: ${this.shapeMode === 'fill' ? 'Isi Warna Penuh' : 'Garis Tepi Saja'}`);
+                }
+            },
+
+            toggleBackground() {
+                this.bgIndex = (this.bgIndex + 1) % this.bgPatterns.length;
+                const wrapper = document.getElementById('canvas-wrapper');
+                wrapper.className = `relative bg-pattern-${this.bgPatterns[this.bgIndex]} mx-auto shadow-sm overflow-hidden`;
+                this.saveState();
+                UI.showToast(`Latar Kanvas: ${this.bgPatterns[this.bgIndex].toUpperCase()}`);
+            },
+
+            executeClear(recordHistory = true) {
+                this.objects = []; this.deselect(); this.syncDOM();
+                this.currentStrokes = [];
+                this.isBlank = true;
+                document.getElementById('canvas-id').value = ''; document.getElementById('canvas-title').value = '';
+                
+                this.updateBaseRaster('', () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    if (recordHistory) { this.saveState(); } 
+                    else {
+                        localStorage.removeItem('sketchpro_draft'); localStorage.removeItem('sketchpro_is_blank');
+                        localStorage.removeItem('sketchpro_active_id'); localStorage.removeItem('sketchpro_active_title');
+                    }
+                    UI.showToast('Kanvas telah dibersihkan seketika!');
+                });
+            },
+
+            loadImage(dataUrl, updateBlankState = true) {
+                this.updateBaseRaster(dataUrl, () => {
+                    this.currentStrokes = [];
+                    this.renderCanvas();
+                    if(updateBlankState) this.isBlank = false;
+                });
+            },
+
+            // ===== MULTI-LAYER & SMART GUIDES ENGINE =====
+            
+            syncDOM() {
+                const layer = document.getElementById('objects-layer');
+                layer.innerHTML = '';
+                
+                this.objects.forEach(obj => {
+                    const img = document.createElement('img');
+                    img.src = obj.src; img.id = obj.id;
+                    img.className = `absolute cursor-pointer user-select-none canvas-object ${obj.locked ? 'layer-locked' : ''} ${!obj.visible ? 'layer-hidden' : ''}`;
+                    img.style.left = obj.x + 'px'; img.style.top = obj.y + 'px';
+                    img.style.width = obj.w + 'px'; img.style.height = obj.h + 'px';
+                    img.style.transform = `rotate(${obj.rotation}rad)`; img.style.opacity = obj.opacity / 100;
+                    if(obj.filters) img.style.filter = `brightness(${obj.filters.b}%) contrast(${obj.filters.c}%) saturate(${obj.filters.s}%) blur(${obj.filters.bl}px)`;
+                    img.draggable = false;
+                    
+                    img.style.pointerEvents = (this.tool === 'move-image' && !obj.locked && obj.visible) ? 'auto' : 'none';
+                    img.addEventListener('pointerdown', (e) => {
+                        if(this.tool === 'move-image' && !obj.locked && obj.visible) { e.stopPropagation(); this.selectObject(obj.id, e.shiftKey || e.ctrlKey || e.metaKey); }
+                    });
+                    layer.appendChild(img);
+                });
+                
+                // Cleanup missing selections
+                this.activeObjectIds = this.activeObjectIds.filter(id => this.objects.some(o => o.id === id));
+                this.updateSelectionUI();
+                this.syncLayerPanel();
+            },
+
+            syncLayerPanel() {
+                const container = document.getElementById('layer-list-container');
+                if(!container) return; container.innerHTML = '';
+                
+                [...this.objects].reverse().forEach((obj, idx) => {
+                    const realIdx = this.objects.length - 1 - idx;
+                    const item = document.createElement('div');
+                    item.className = `flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border ${this.activeObjectIds.includes(obj.id) ? 'border-primary' : 'border-slate-200 dark:border-slate-700'}`;
+                    
+                    let icon = 'image'; if(obj.category==='shape') icon='square'; if(obj.category==='text') icon='type';
+                    let title = obj.category === 'text' ? (obj.text.substring(0,10) + '...') : `${obj.category.toUpperCase()} ${obj.id.substring(obj.id.length-4)}`;
+                    if(obj.groupId) title = `[Grup] ` + title;
+
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2 flex-1 cursor-pointer overflow-hidden" onclick="DrawingEngine.selectObject('${obj.id}')">
+                            <i data-lucide="${icon}" class="w-4 h-4 text-slate-500"></i>
+                            <span class="text-xs font-medium truncate">${title}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="DrawingEngine.toggleLayerProp('${obj.id}', 'visible')" class="p-1 text-slate-400 hover:text-primary"><i data-lucide="${obj.visible ? 'eye' : 'eye-off'}" class="w-3 h-3"></i></button>
+                            <button onclick="DrawingEngine.toggleLayerProp('${obj.id}', 'locked')" class="p-1 text-slate-400 hover:text-primary"><i data-lucide="${obj.locked ? 'lock' : 'unlock'}" class="w-3 h-3"></i></button>
+                            <div class="flex flex-col gap-0 border-l border-slate-200 dark:border-slate-600 pl-1 ml-1">
+                                <button onclick="DrawingEngine.reorderLayer('${obj.id}', 1)" class="text-slate-400 hover:text-primary ${realIdx === this.objects.length-1 ? 'opacity-30 pointer-events-none' : ''}"><i data-lucide="chevron-up" class="w-3 h-3"></i></button>
+                                <button onclick="DrawingEngine.reorderLayer('${obj.id}', -1)" class="text-slate-400 hover:text-primary ${realIdx === 0 ? 'opacity-30 pointer-events-none' : ''}"><i data-lucide="chevron-down" class="w-3 h-3"></i></button>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+                lucide.createIcons({root: container});
+            },
+
+            toggleLayerProp(id, prop) {
+                const obj = this.objects.find(o => o.id === id);
+                if(obj) {
+                    obj[prop] = !obj[prop];
+                    if(prop === 'locked' && obj.locked && this.activeObjectIds.includes(id)) this.activeObjectIds = this.activeObjectIds.filter(i => i !== id);
+                    if(prop === 'visible' && !obj.visible && this.activeObjectIds.includes(id)) this.activeObjectIds = this.activeObjectIds.filter(i => i !== id);
+                    this.syncDOM(); this.saveState();
+                }
+            },
+
+            reorderLayer(id, direction) {
+                const idx = this.objects.findIndex(o => o.id === id); if (idx < 0) return;
+                if (direction === 1 && idx < this.objects.length - 1) { const temp = this.objects[idx]; this.objects[idx] = this.objects[idx+1]; this.objects[idx+1] = temp; } 
+                else if (direction === -1 && idx > 0) { const temp = this.objects[idx]; this.objects[idx] = this.objects[idx-1]; this.objects[idx-1] = temp; }
+                this.syncDOM(); this.saveState();
+            },
+
+            flattenAllLayers() {
+                if(this.objects.length === 0) return;
+                this.deselect();
+                const rect = this.canvas.getBoundingClientRect();
+                
+                // Draw objects into current baseRaster
+                const tCtx = this.ctx;
+                
+                // Pastikan canvas terbaru telah digambar
+                this.renderCanvas();
+                
+                this.objects.forEach(obj => {
+                    if(!obj.visible) return;
+                    const domImg = document.getElementById(obj.id);
+                    if (domImg) {
+                        tCtx.save(); tCtx.globalCompositeOperation = 'source-over'; tCtx.globalAlpha = obj.opacity / 100;
+                        if(obj.filters) tCtx.filter = `brightness(${obj.filters.b}%) contrast(${obj.filters.c}%) saturate(${obj.filters.s}%) blur(${obj.filters.bl}px)`;
+                        tCtx.translate(obj.x + obj.w / 2, obj.y + obj.h / 2); tCtx.rotate(obj.rotation || 0);
+                        tCtx.drawImage(domImg, -obj.w / 2, -obj.h / 2, obj.w, obj.h); tCtx.restore();
+                    }
+                });
+                
+                const dataUrl = this.canvas.toDataURL();
+                this.updateBaseRaster(dataUrl, () => {
+                    this.currentStrokes = [];
+                    this.isBlank = false; this.objects = [];
+                    this.syncDOM(); this.saveState();
+                    UI.showToast('Semua layer digabungkan (Flattened).');
+                });
+            },
+
+            groupSelected() {
+                if (this.activeObjectIds.length > 1) {
+                    const newGroupId = 'group_' + Date.now() + Math.random();
+                    this.activeObjectIds.forEach(id => {
+                        const obj = this.objects.find(o => o.id === id);
+                        if(obj) obj.groupId = newGroupId;
+                    });
+                    this.saveState(); this.syncLayerPanel(); this.updateSelectionUI();
+                    UI.showToast('Objek digabungkan (Grouped).');
+                }
+            },
+
+            ungroupSelected() {
+                if (this.activeObjectIds.length > 0) {
+                    let ungrouped = false;
+                    this.activeObjectIds.forEach(id => {
+                        const obj = this.objects.find(o => o.id === id);
+                        if(obj && obj.groupId) { delete obj.groupId; ungrouped = true; }
+                    });
+                    if(ungrouped) {
+                        this.saveState(); this.syncLayerPanel(); this.updateSelectionUI();
+                        UI.showToast('Grup dipisahkan (Ungrouped).');
+                    }
+                }
+            },
+
+            menuAction(action) {
+                document.getElementById('context-menu').classList.add('hidden');
+                if(this.activeObjectIds.length === 0) return;
+                
+                if (action === 'group') { this.groupSelected(); return; }
+                if (action === 'ungroup') { this.ungroupSelected(); return; }
+
+                this.activeObjectIds.forEach(id => {
+                    const idx = this.objects.findIndex(o => o.id === id);
+                    if(idx < 0) return;
+                    
+                    if (action === 'front') { const obj = this.objects.splice(idx, 1)[0]; this.objects.push(obj); } 
+                    else if (action === 'back') { const obj = this.objects.splice(idx, 1)[0]; this.objects.unshift(obj); } 
+                    else if (action === 'duplicate') {
+                        const obj = JSON.parse(JSON.stringify(this.objects[idx]));
+                        obj.id = obj.category + '_' + Date.now() + Math.random();
+                        obj.x += 20; obj.y += 20; this.objects.push(obj);
+                    }
+                });
+                
+                if (action === 'delete') { this.deleteActiveObject(); return; }
+                this.syncDOM(); this.saveState();
+            },
+
+            updateObjectDOM(obj) {
+                const img = document.getElementById(obj.id);
+                if (img) {
+                    img.style.left = obj.x + 'px'; img.style.top = obj.y + 'px';
+                    img.style.width = obj.w + 'px'; img.style.height = obj.h + 'px';
+                    img.style.transform = `rotate(${obj.rotation}rad)`; img.style.opacity = obj.opacity / 100;
+                    if(obj.filters) img.style.filter = `brightness(${obj.filters.b}%) contrast(${obj.filters.c}%) saturate(${obj.filters.s}%) blur(${obj.filters.bl}px)`;
+                    img.src = obj.src; 
+                }
+                this.updateSelectionUI();
+            },
+
+            selectObject(id, isMulti = false) {
+                const targetObj = this.objects.find(o => o.id === id);
+                if(!targetObj || targetObj.locked || !targetObj.visible) return;
+
+                let idsToToggle = [id];
+                if (targetObj.groupId) {
+                    idsToToggle = this.objects.filter(o => o.groupId === targetObj.groupId).map(o => o.id);
+                }
+                
+                if (isMulti) {
+                    const allSelected = idsToToggle.every(i => this.activeObjectIds.includes(i));
+                    if (allSelected) {
+                        this.activeObjectIds = this.activeObjectIds.filter(i => !idsToToggle.includes(i));
+                    } else {
+                        this.activeObjectIds = [...new Set([...this.activeObjectIds, ...idsToToggle])];
+                    }
+                } else {
+                    this.activeObjectIds = [...idsToToggle];
+                }
+                
+                this.setTool('move-image');
+                this.updateSelectionUI();
+                
+                if (this.activeObjectIds.length === 1) {
+                    const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    if (obj) {
+                        document.getElementById('trace-opacity').value = obj.opacity;
+                        if(obj.category !== 'image') {
+                            document.getElementById('trace-color-display').style.backgroundColor = obj.color;
+                            document.getElementById('custom-color-picker').value = obj.color;
+                            this.color = obj.color;
+                        }
+                        if(obj.category === 'image' && obj.filters) {
+                            document.getElementById('filter-brightness').value = obj.filters.b;
+                            document.getElementById('filter-contrast').value = obj.filters.c;
+                            document.getElementById('filter-blur').value = obj.filters.bl;
+                        }
+                    }
+                }
+                this.syncLayerPanel();
+            },
+
+            deselect() {
+                this.activeObjectIds = [];
+                this.updateSelectionUI();
+                this.syncLayerPanel();
+            },
+
+            updateSelectionUI() {
+                const ui = document.getElementById('selection-ui');
+                const controls = document.getElementById('trace-controls');
+                const filterControls = document.getElementById('filter-controls');
+                const border = document.getElementById('selection-border');
+                const btnGroupDelete = document.getElementById('group-delete-btn');
+                const btnSingleDelete = document.getElementById('single-delete-btn');
+                
+                const btnGroup = document.getElementById('btn-group-obj');
+                const btnUngroup = document.getElementById('btn-ungroup-obj');
+
+                if (this.activeObjectIds.length === 0) {
+                    ui.classList.add('hidden'); controls.classList.add('hidden'); controls.classList.remove('flex');
+                    filterControls.classList.add('hidden'); filterControls.classList.remove('flex');
+                    return;
+                }
+                
+                ui.classList.remove('hidden');
+                
+                if (this.activeObjectIds.length === 1) {
+                    // Single Select
+                    border.classList.replace('multi-select-box', 'border-2'); border.classList.add('border-dashed', 'border-primary');
+                    btnGroupDelete.classList.add('hidden'); btnSingleDelete.classList.remove('hidden');
+                    
+                    const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    ui.style.left = obj.x + 'px'; ui.style.top = obj.y + 'px'; ui.style.width = obj.w + 'px'; ui.style.height = obj.h + 'px';
+                    ui.style.transform = `rotate(${obj.rotation}rad)`;
+                    
+                    controls.classList.remove('hidden'); controls.classList.add('flex');
+                    if (obj.category === 'image') { filterControls.classList.remove('hidden'); filterControls.classList.add('flex'); } 
+                    else { filterControls.classList.add('hidden'); filterControls.classList.remove('flex'); }
+                    
+                    document.getElementById('btn-edit-obj').classList.toggle('hidden', obj.category !== 'text');
+                    document.getElementById('color-picker-obj').classList.toggle('hidden', obj.category === 'image');
+                    document.getElementById('rotate-obj').classList.remove('hidden');
+                    document.getElementById('resize-obj').classList.remove('hidden');
+                    
+                    btnGroup.classList.add('hidden');
+                    if (obj.groupId) btnUngroup.classList.remove('hidden'); else btnUngroup.classList.add('hidden');
+                    
+                } else {
+                    // Multi Select (AABB Bounding Box)
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    this.activeObjectIds.forEach(id => {
+                        const obj = this.objects.find(o => o.id === id);
+                        if(obj) {
+                            const aabb = this.getAABB(obj);
+                            if(aabb.minX < minX) minX = aabb.minX; if(aabb.minY < minY) minY = aabb.minY;
+                            if(aabb.maxX > maxX) maxX = aabb.maxX; if(aabb.maxY > maxY) maxY = aabb.maxY;
+                        }
+                    });
+                    
+                    border.className = 'multi-select-box absolute inset-0 pointer-events-none';
+                    btnGroupDelete.classList.remove('hidden'); btnSingleDelete.classList.add('hidden');
+                    
+                    ui.style.left = minX + 'px'; ui.style.top = minY + 'px'; ui.style.width = (maxX - minX) + 'px'; ui.style.height = (maxY - minY) + 'px';
+                    ui.style.transform = 'none';
+                    
+                    controls.classList.add('hidden'); controls.classList.remove('flex'); filterControls.classList.add('hidden'); filterControls.classList.remove('flex');
+                    document.getElementById('btn-edit-obj').classList.add('hidden'); document.getElementById('color-picker-obj').classList.add('hidden');
+                    document.getElementById('rotate-obj').classList.add('hidden'); document.getElementById('resize-obj').classList.add('hidden');
+
+                    btnGroup.classList.remove('hidden');
+                    const hasGroup = this.activeObjectIds.some(id => { const o = this.objects.find(x => x.id === id); return o && o.groupId; });
+                    if (hasGroup) btnUngroup.classList.remove('hidden'); else btnUngroup.classList.add('hidden');
+                }
+            },
+
+            getAABB(obj) {
+                const cx = obj.x + obj.w / 2; const cy = obj.y + obj.h / 2;
+                const w2 = obj.w / 2; const h2 = obj.h / 2;
+                const angle = obj.rotation || 0;
+                const cos = Math.cos(angle); const sin = Math.sin(angle);
+                
+                const corners = [
+                    {x: -w2 * cos - (-h2) * sin, y: -w2 * sin + (-h2) * cos},
+                    {x: w2 * cos - (-h2) * sin, y: w2 * sin + (-h2) * cos},
+                    {x: w2 * cos - h2 * sin, y: w2 * sin + h2 * cos},
+                    {x: -w2 * cos - h2 * sin, y: -w2 * sin + h2 * cos}
+                ];
+                
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                corners.forEach(c => {
+                    if(c.x < minX) minX = c.x; if(c.x > maxX) maxX = c.x;
+                    if(c.y < minY) minY = c.y; if(c.y > maxY) maxY = c.y;
+                });
+                
+                return { cx, cy, minX: cx + minX, maxX: cx + maxX, minY: cy + minY, maxY: cy + maxY };
+            },
+
+            initSelectionControls() {
+                const ui = document.getElementById('selection-ui');
+                const resizeBtn = document.getElementById('resize-obj');
+                const rotateBtn = document.getElementById('rotate-obj');
+                const dragOverlay = document.getElementById('drag-overlay-obj');
+                
+                let isDragging = false; let dsX, dsY;
+                let originalPositions = {};
+                
+                const startDrag = (e) => {
+                    if (this.activeObjectIds.length === 0 || this.tool !== 'move-image') return;
+                    e.preventDefault(); isDragging = true;
+                    dsX = e.touches ? e.touches[0].clientX : e.clientX; dsY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    originalPositions = {};
+                    this.activeObjectIds.forEach(id => {
+                        const obj = this.objects.find(o => o.id === id);
+                        if(obj) originalPositions[id] = { x: obj.x, y: obj.y };
+                    });
+                };
+                
+                const doDrag = (e) => {
+                    if (!isDragging || this.activeObjectIds.length === 0) return; e.preventDefault();
+                    const cx = e.touches ? e.touches[0].clientX : e.clientX; const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                    const dx = cx - dsX; const dy = cy - dsY;
+                    
+                    this.guidesCtx.clearRect(0,0, this.guidesCanvas.width, this.guidesCanvas.height);
+                    let snapDX = 0; let snapDY = 0;
+                    
+                    // SMART ALIGNMENT GUIDES DENGAN ROTATION (AABB BOUNDS)
+                    if (this.activeObjectIds.length === 1 && this.bgPatterns[this.bgIndex] === 'grid') {
+                        const objId = this.activeObjectIds[0];
+                        const oPos = originalPositions[objId];
+                        const obj = this.objects.find(o => o.id === objId);
+                        
+                        // Prediksi AABB masa depan
+                        const simObj = { ...obj, x: oPos.x + dx, y: oPos.y + dy };
+                        const myAABB = this.getAABB(simObj);
+                        
+                        const threshold = 8;
+                        let minDX = Infinity, minDY = Infinity;
+                        let guideX = null, guideY = null;
+                        
+                        this.guidesCtx.strokeStyle = 'red'; this.guidesCtx.lineWidth = 1; this.guidesCtx.setLineDash([5, 5]);
+
+                        this.objects.forEach(other => {
+                            if(other.id === objId || !other.visible) return;
+                            const otAABB = this.getAABB(other);
+                            
+                            // Bandingkan X (Center, Kiri, Kanan)
+                            const xPairs = [ {m: myAABB.cx, t: otAABB.cx}, {m: myAABB.minX, t: otAABB.minX}, {m: myAABB.maxX, t: otAABB.maxX} ];
+                            xPairs.forEach(p => {
+                                const diff = p.t - p.m;
+                                if(Math.abs(diff) < threshold && Math.abs(diff) < Math.abs(minDX)) { minDX = diff; snapDX = diff; guideX = p.t; }
+                            });
+                            
+                            // Bandingkan Y (Center, Atas, Bawah)
+                            const yPairs = [ {m: myAABB.cy, t: otAABB.cy}, {m: myAABB.minY, t: otAABB.minY}, {m: myAABB.maxY, t: otAABB.maxY} ];
+                            yPairs.forEach(p => {
+                                const diff = p.t - p.m;
+                                if(Math.abs(diff) < threshold && Math.abs(diff) < Math.abs(minDY)) { minDY = diff; snapDY = diff; guideY = p.t; }
+                            });
+                        });
+                        
+                        if (minDX !== Infinity) { this.guidesCtx.beginPath(); this.guidesCtx.moveTo(guideX, 0); this.guidesCtx.lineTo(guideX, this.guidesCanvas.height); this.guidesCtx.stroke(); }
+                        if (minDY !== Infinity) { this.guidesCtx.beginPath(); this.guidesCtx.moveTo(0, guideY); this.guidesCtx.lineTo(this.guidesCanvas.width, guideY); this.guidesCtx.stroke(); }
+                    }
+
+                    this.activeObjectIds.forEach(id => {
+                        const obj = this.objects.find(o => o.id === id);
+                        if(obj && originalPositions[id]) {
+                            obj.x = originalPositions[id].x + dx + snapDX; 
+                            obj.y = originalPositions[id].y + dy + snapDY;
+                            this.updateObjectDOM(obj);
+                        }
+                    });
+                    if(this.activeObjectIds.length > 1) this.updateSelectionUI();
+                };
+                
+                const stopDrag = () => { 
+                    if(isDragging) { 
+                        isDragging = false; 
+                        this.guidesCtx.clearRect(0,0, this.guidesCanvas.width, this.guidesCanvas.height);
+                        this.saveState(); 
+                    } 
+                };
+                
+                dragOverlay.addEventListener('pointerdown', startDrag); window.addEventListener('pointermove', doDrag, {passive: false}); window.addEventListener('pointerup', stopDrag);
+                dragOverlay.addEventListener('touchstart', startDrag, {passive: false}); window.addEventListener('touchmove', doDrag, {passive: false}); window.addEventListener('touchend', stopDrag);
+
+                // CONSTRAINED RESIZING (SHIFT KEY)
+                let isResizing = false; let startDist, startW, startH, traceCX, traceCY;
+                const startResize = (e) => {
+                    if (this.activeObjectIds.length !== 1 || this.tool !== 'move-image') return;
+                    e.preventDefault(); e.stopPropagation(); isResizing = true;
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const rect = ui.getBoundingClientRect(); traceCX = rect.left + rect.width / 2; traceCY = rect.top + rect.height / 2;
+                    startDist = Math.hypot(clientX - traceCX, clientY - traceCY);
+                    const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    if(obj) { startW = obj.w; startH = obj.h; } document.body.style.userSelect = 'none';
+                };
+                const doResize = (e) => {
+                    if (!isResizing || this.activeObjectIds.length !== 1) return; e.preventDefault(); e.stopPropagation();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const scale = Math.hypot(clientX - traceCX, clientY - traceCY) / startDist;
+                    const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    if(obj) {
+                        let newW, newH;
+                        if (e.shiftKey) {
+                            newW = startW * scale; newH = newW / obj.aspectRatio; // Proporsional
+                        } else {
+                            const dx = clientX - traceCX; const dy = clientY - traceCY;
+                            const angle = -(obj.rotation || 0);
+                            const rx = dx * Math.cos(angle) - dy * Math.sin(angle);
+                            const ry = dx * Math.sin(angle) + dy * Math.cos(angle);
+                            newW = Math.abs(rx) * 2; newH = Math.abs(ry) * 2; // Free Transform
+                        }
+                        
+                        if (newW < 20) newW = 20; if (newH < 20) newH = 20;
+                        const diffW = newW - obj.w; const diffH = newH - obj.h;
+                        obj.x -= diffW / 2; obj.y -= diffH / 2; obj.w = newW; obj.h = newH;
+                        if(!e.shiftKey) obj.aspectRatio = obj.w / obj.h; // Update ratio for future shift constraints
+                        this.updateObjectDOM(obj);
+                    }
+                };
+                const stopResize = () => { if(isResizing) { isResizing = false; document.body.style.userSelect = ''; this.saveState(); } };
+                
+                resizeBtn.addEventListener('pointerdown', startResize); window.addEventListener('pointermove', doResize, {passive: false}); window.addEventListener('pointerup', stopResize);
+                resizeBtn.addEventListener('touchstart', startResize, {passive: false}); window.addEventListener('touchmove', doResize, {passive: false}); window.addEventListener('touchend', stopResize);
+
+                let isRotating = false; let initialAngle, initialRotation, rotCX, rotCY;
+                const startRotate = (e) => {
+                    if (this.activeObjectIds.length !== 1 || this.tool !== 'move-image') return;
+                    e.preventDefault(); e.stopPropagation(); isRotating = true;
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const rect = ui.getBoundingClientRect(); rotCX = rect.left + rect.width / 2; rotCY = rect.top + rect.height / 2;
+                    initialAngle = Math.atan2(clientY - rotCY, clientX - rotCX);
+                    const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    if(obj) { initialRotation = obj.rotation || 0; } document.body.style.userSelect = 'none';
+                };
+                const doRotate = (e) => {
+                    if (!isRotating || this.activeObjectIds.length !== 1) return; e.preventDefault(); e.stopPropagation();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const currentAngle = Math.atan2(clientY - rotCY, clientX - rotCX);
+                    const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    if(obj) { obj.rotation = initialRotation + (currentAngle - initialAngle); this.updateObjectDOM(obj); }
+                };
+                const stopRotate = () => { if(isRotating) { isRotating = false; document.body.style.userSelect = ''; this.saveState(); } };
+
+                rotateBtn.addEventListener('pointerdown', startRotate); window.addEventListener('pointermove', doRotate, {passive: false}); window.addEventListener('pointerup', stopRotate);
+                rotateBtn.addEventListener('touchstart', startRotate, {passive: false}); window.addEventListener('touchmove', doRotate, {passive: false}); window.addEventListener('touchend', stopRotate);
+            },
+
+            generateShapeBase64(type, color, mode, strokeSize) {
+                const size = 300; 
+                const tempCanvas = document.createElement('canvas'); tempCanvas.width = size; tempCanvas.height = size; const tCtx = tempCanvas.getContext('2d');
+                tCtx.strokeStyle = color; tCtx.fillStyle = color; tCtx.lineWidth = strokeSize > 30 ? 30 : strokeSize; tCtx.lineJoin = 'round'; tCtx.lineCap = 'round';
+                const cx = size/2; const cy = size/2; const padding = tCtx.lineWidth / 2 + 5;
+                tCtx.beginPath();
+                if (type === 'rect') { tCtx.rect(padding, padding, size - padding*2, size - padding*2); } 
+                else if (type === 'circle') { tCtx.arc(cx, cy, size/2 - padding, 0, Math.PI * 2); } 
+                else if (type === 'triangle') { tCtx.moveTo(cx, padding); tCtx.lineTo(size - padding, size - padding); tCtx.lineTo(padding, size - padding); tCtx.closePath(); } 
+                else if (type === 'star') {
+                    const spikes = 5; const outerRadius = size/2 - padding; const innerRadius = outerRadius / 2.5; let rot = Math.PI / 2 * 3; let step = Math.PI / spikes;
+                    tCtx.moveTo(cx, cy - outerRadius);
+                    for (let i = 0; i < spikes; i++) { tCtx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius); rot += step; tCtx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius); rot += step; } tCtx.closePath();
+                } else if (type === 'hexagon') {
+                    const a = 2 * Math.PI / 6; const r = size/2 - padding;
+                    for (let i = 0; i < 6; i++) { tCtx.lineTo(cx + r * Math.cos(a * i), cy + r * Math.sin(a * i)); } tCtx.closePath();
+                } else if (type === 'line') { tCtx.moveTo(padding, cy); tCtx.lineTo(size - padding, cy); } 
+                else if (type === 'arrow') { tCtx.moveTo(padding, cy); tCtx.lineTo(size - padding*3, cy); tCtx.stroke(); tCtx.beginPath(); tCtx.moveTo(size - padding*3, cy - 20); tCtx.lineTo(size - padding, cy); tCtx.lineTo(size - padding*3, cy + 20); tCtx.closePath(); }
+                if(type !== 'line' && type !== 'arrow') { mode === 'fill' ? tCtx.fill() : tCtx.stroke(); } else if (type === 'arrow') { mode === 'fill' ? tCtx.fill() : tCtx.stroke(); } else { tCtx.stroke(); }
+                return tempCanvas.toDataURL('image/png');
+            },
+
+            spawnShape(type) {
+                const src = this.generateShapeBase64(type, this.color, this.shapeMode, this.size);
+                const rect = this.canvas.getBoundingClientRect();
+                const obj = { id: 'shape_' + Date.now() + Math.floor(Math.random()*100), category: 'shape', type: type, color: this.color, mode: this.shapeMode, strokeSize: this.size, src: src, x: rect.width/2 - 100, y: rect.height/2 - 100, w: 200, h: 200, rotation: 0, opacity: 100, aspectRatio: 1, visible: true, locked: false };
+                this.objects.push(obj); this.syncDOM(); this.selectObject(obj.id); this.saveState();
+            },
+
+            generateTextBase64(text, color, fontSize, fontFamily, align) {
+                const tempCanvas = document.createElement('canvas'); const tCtx = tempCanvas.getContext('2d'); const lines = text.split('\n'); tCtx.font = `bold ${fontSize}px ${fontFamily}`;
+                let maxWidth = 0; lines.forEach(line => { const metrics = tCtx.measureText(line); if (metrics.width > maxWidth) maxWidth = metrics.width; });
+                const lineHeight = fontSize * 1.2; tempCanvas.width = maxWidth + (fontSize); tempCanvas.height = (lines.length * lineHeight) + (fontSize);
+                tCtx.font = `bold ${fontSize}px ${fontFamily}`; tCtx.fillStyle = color; tCtx.textBaseline = 'top';
+                lines.forEach((line, index) => { let x = fontSize/2; if(align === 'center') x = (tempCanvas.width - tCtx.measureText(line).width) / 2; else if(align === 'right') x = tempCanvas.width - tCtx.measureText(line).width - fontSize/2; tCtx.fillText(line, x, (fontSize/2) + (index * lineHeight)); });
+                return tempCanvas.toDataURL('image/png');
+            },
+
+            addTextLayer(text, color, size, fontFamily, align) {
+                let obj;
+                if (this.activeObjectIds.length === 1 && this.objects.find(o => o.id === this.activeObjectIds[0] && o.category === 'text')) {
+                    obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                    obj.text = text; obj.color = color; obj.fontSize = size; obj.fontFamily = fontFamily; obj.align = align;
+                    obj.src = this.generateTextBase64(text, color, size, fontFamily, align);
+                } else {
+                    const rect = this.canvas.getBoundingClientRect();
+                    obj = { id: 'text_' + Date.now() + Math.floor(Math.random()*100), category: 'text', text: text, color: color, fontSize: size, fontFamily: fontFamily, align: align, src: this.generateTextBase64(text, color, size, fontFamily, align), x: rect.width/2 - 100, y: rect.height/2 - 50, rotation: 0, opacity: 100, visible: true, locked: false };
+                    const tempImg = new Image();
+                    tempImg.onload = () => { obj.w = tempImg.width; obj.h = tempImg.height; obj.aspectRatio = obj.w / obj.h; this.objects.push(obj); this.syncDOM(); this.selectObject(obj.id); this.saveState(); }; tempImg.src = obj.src; return;
+                }
+                this.updateObjectDOM(obj); this.saveState();
+            },
+
+            editActiveText() {
+                if (this.activeObjectIds.length !== 1) return;
+                const obj = this.objects.find(o => o.id === this.activeObjectIds[0]);
+                if (!obj || obj.category !== 'text') return;
+                document.getElementById('text-input-content').value = obj.text; document.getElementById('text-input-color').value = obj.color;
+                document.getElementById('text-input-size').value = obj.fontSize; document.getElementById('text-input-font').value = obj.fontFamily || 'sans-serif';
+                document.getElementById('text-input-align').value = obj.align || 'left';
+                UI.openModal('modal-add-text');
+            },
+
+            updateActiveColor(newColor) {
+                document.getElementById('trace-color-display').style.backgroundColor = newColor; this.color = newColor; document.getElementById('custom-color-picker').value = newColor;
+                this.activeObjectIds.forEach(id => {
+                    const obj = this.objects.find(o => o.id === id);
+                    if(obj) {
+                        obj.color = newColor;
+                        if (obj.category === 'shape') { obj.src = this.generateShapeBase64(obj.type, obj.color, obj.mode, obj.strokeSize); } 
+                        else if (obj.category === 'text') { obj.src = this.generateTextBase64(obj.text, obj.color, obj.fontSize, obj.fontFamily, obj.align); }
+                        this.updateObjectDOM(obj);
+                    }
+                });
+                this.saveState();
+            },
+
+            insertImage(e) {
+                const file = e.target.files[0]; if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const tempImg = new Image();
+                    tempImg.onload = () => {
+                        const rect = this.canvas.getBoundingClientRect();
+                        let w = tempImg.width; let h = tempImg.height; const maxW = rect.width * 0.7; const maxH = rect.height * 0.7;
+                        if(w > maxW) { h *= maxW/w; w = maxW; } if(h > maxH) { w *= maxH/h; h = maxH; }
+                        const obj = { id: 'img_' + Date.now() + Math.floor(Math.random()*100), category: 'image', src: event.target.result, x: (rect.width - w) / 2, y: (rect.height - h) / 2, w: w, h: h, rotation: 0, opacity: 100, aspectRatio: w / h, visible: true, locked: false, filters: { b: 100, c: 100, s: 100, bl: 0 } };
+                        this.objects.push(obj); this.syncDOM(); this.selectObject(obj.id); this.saveState(); UI.showToast('Gambar ditambah!');
+                    }; tempImg.src = event.target.result;
+                }; reader.readAsDataURL(file); e.target.value = ''; 
+            },
+
+            setTraceOpacity(val) { 
+                this.activeObjectIds.forEach(id => {
+                    const obj = this.objects.find(o => o.id === id);
+                    if (obj) { obj.opacity = val; this.updateObjectDOM(obj); }
+                });
+                this.saveState();
+            },
+            
+            updateFilters() {
+                this.activeObjectIds.forEach(id => {
+                    const obj = this.objects.find(o => o.id === id);
+                    if (obj && obj.category === 'image') {
+                        obj.filters = { b: document.getElementById('filter-brightness').value, c: document.getElementById('filter-contrast').value, bl: document.getElementById('filter-blur').value, s: 100 };
+                        this.updateObjectDOM(obj);
+                    }
+                });
+                this.saveState();
+            },
+
+            deleteActiveObject() {
+                if(this.activeObjectIds.length === 0) return;
+                this.objects = this.objects.filter(o => !this.activeObjectIds.includes(o.id));
+                this.deselect(); this.syncDOM(); this.saveState();
+            },
+
+            exportCanvasFinal(format, bgType) {
+                this.deselect(); 
+                UI.showLoading('Mengekspor High-Res 300DPI...');
+
+                setTimeout(() => {
+                    const temp = document.createElement('canvas'); const rect = this.canvas.getBoundingClientRect();
+                    
+                    // ADVANCED EXPORT ENGINE (High-End Rendering 4x Scale)
+                    const scale = format === 'pdf' ? 2 : 4; 
+                    temp.width = rect.width * scale; temp.height = rect.height * scale;
+                    const tCtx = temp.getContext('2d');
+                    tCtx.scale(scale, scale);
+
+                    if (bgType === 'solid') { tCtx.fillStyle = '#ffffff'; tCtx.fillRect(0,0,rect.width, rect.height); } 
+                    else if (bgType === 'pattern') {
+                        tCtx.fillStyle = '#ffffff'; tCtx.fillRect(0,0,rect.width, rect.height);
+                        if(this.bgPatterns[this.bgIndex] === 'grid') {
+                            tCtx.strokeStyle = '#e2e8f0'; tCtx.lineWidth = 1;
+                            for(let x=0; x<rect.width; x+=20) { tCtx.beginPath(); tCtx.moveTo(x,0); tCtx.lineTo(x,rect.height); tCtx.stroke(); }
+                            for(let y=0; y<rect.height; y+=20) { tCtx.beginPath(); tCtx.moveTo(0,y); tCtx.lineTo(rect.width,y); tCtx.stroke(); }
+                        } else if(this.bgPatterns[this.bgIndex] === 'dot') {
+                            tCtx.fillStyle = '#cbd5e1';
+                            for(let x=10; x<rect.width; x+=20) { for(let y=10; y<rect.height; y+=20) { tCtx.beginPath(); tCtx.arc(x,y,1.5,0,Math.PI*2); tCtx.fill(); } }
+                        }
+                    }
+
+                    // Render Synchronous / Fallback
+                    if(this.baseImage) {
+                        tCtx.drawImage(this.baseImage, 0, 0, rect.width, rect.height);
+                        this.finishExport(tCtx, rect, temp, format);
+                    } else if (this.baseRasterData && this.baseRasterData.length > 10) {
+                        const img = new Image();
+                        img.onload = () => {
+                            tCtx.drawImage(img, 0, 0, rect.width, rect.height);
+                            this.finishExport(tCtx, rect, temp, format);
+                        };
+                        img.src = this.baseRasterData;
+                    } else {
+                        this.finishExport(tCtx, rect, temp, format);
+                    }
+                }, 100);
+            },
+            
+            finishExport(tCtx, rect, temp, format) {
+                // Draw pending Strokes
+                this.currentStrokes.forEach(stroke => {
+                    if(stroke.points.length === 0) return;
+                    tCtx.lineWidth = stroke.size; tCtx.lineCap = 'round'; tCtx.lineJoin = 'round';
+                    tCtx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+                    tCtx.strokeStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
+                    tCtx.beginPath(); tCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+                    if (stroke.points.length === 1) { tCtx.lineTo(stroke.points[0].x + 0.1, stroke.points[0].y); } else {
+                        for (let i = 1; i < stroke.points.length - 1; i++) {
+                            const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2; const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
+                            tCtx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+                        }
+                        tCtx.lineTo(stroke.points[stroke.points.length - 1].x, stroke.points[stroke.points.length - 1].y);
+                    } tCtx.stroke();
+                });
+                tCtx.globalCompositeOperation = 'source-over';
+
+                // Draw Objects
+                this.objects.forEach(obj => {
+                    if(!obj.visible) return;
+                    const domImg = document.getElementById(obj.id);
+                    if (domImg) {
+                        tCtx.save(); tCtx.globalAlpha = obj.opacity / 100;
+                        if(obj.filters) tCtx.filter = `brightness(${obj.filters.b}%) contrast(${obj.filters.c}%) saturate(${obj.filters.s}%) blur(${obj.filters.bl}px)`;
+                        tCtx.translate(obj.x + obj.w / 2, obj.y + obj.h / 2); tCtx.rotate(obj.rotation || 0);
+                        tCtx.drawImage(domImg, -obj.w / 2, -obj.h / 2, obj.w, obj.h); tCtx.restore();
+                    }
+                });
+
+                if (format === 'pdf') {
+                    const pdf = new jspdf.jsPDF({ orientation: rect.width > rect.height ? 'landscape' : 'portrait', unit: 'px', format: [rect.width, rect.height] });
+                    pdf.addImage(temp.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, rect.width, rect.height);
+                    pdf.save(`SketchPro_${Date.now()}.pdf`);
+                } else if (format === 'thumbnail') { // Internal saving routine
+                    // do nothing, returned manually below
+                } else {
+                    const link = document.createElement('a'); link.download = `SketchPro_${Date.now()}.${format}`;
+                    link.href = temp.toDataURL(`image/${format}`, format==='jpg'?0.9:1); link.click();
+                    UI.showToast('Karya berhasil diekspor!');
+                }
+                UI.hideLoading();
+            }
+        };
+
+        const Settings = {
+            changeColor(hex, save = true) {
+                document.documentElement.style.setProperty('--color-primary', hex); document.getElementById('color-hex-display').textContent = hex;
+                document.querySelector('meta[name="theme-color"]').setAttribute("content", hex);
+                if(save) { localStorage.setItem('sketchpro_color', hex); UI.showToast('Warna diperbarui'); Logic.updateChart(); }
+            },
+            saveAppName() {
+                const name = document.getElementById('setting-app-name').value; if(!name) return;
+                document.querySelectorAll('.app-name-display').forEach(el => el.textContent = name);
+                localStorage.setItem('sketchpro_name', name); UI.showToast('Nama diperbarui');
+            },
+            confirmReset() { deleteTarget = { type: 'reset', id: null }; UI.openModal('modal-delete'); },
+            exportExcel() {
+                if(DB.drawings.length === 0) return UI.showToast('Kosong', 'error');
+                const dataToExport = DB.drawings.map(d => ({ ID: d.id, Judul: d.title, Kategori: DB.categories.find(c => c.id === d.categoryId)?.name || '-', Tanggal_Dibuat: new Date(d.createdAt).toLocaleString() }));
+                const ws = XLSX.utils.json_to_sheet(dataToExport); const wb = XLSX.utils.book_new();
+                XLS.utils.book_append_sheet(wb, ws, "Galeri"); XLSX.writeFile(wb, `SketchPro_Backup_${Date.now()}.xlsx`);
+            }
+        };
+
+        const App = {
+            async init() {
+                UI.init(); await DB.init(); DrawingEngine.init(); this.bindEvents(); 
+                this.navigate(localStorage.getItem('sketchpro_last_view') || 'dashboard');
+            },
+            navigate(targetId) {
+                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+                document.getElementById(`view-${targetId}`).classList.remove('hidden');
+                document.getElementById(`view-${targetId}`).classList.add('animate-fade-in');
+                document.querySelectorAll('.menu-item').forEach(el => {
+                    el.classList.remove('active-menu', 'bg-slate-50', 'dark:bg-slate-800/50');
+                    if(el.dataset.target === targetId) { el.classList.add('active-menu'); if(el.classList.contains('flex-row')) el.classList.add('bg-slate-50', 'dark:bg-slate-800/50'); }
+                });
+                localStorage.setItem('sketchpro_last_view', targetId);
+                if(targetId === 'dashboard') Logic.renderGallery(); else if(targetId === 'categories') Logic.renderCategories(); else if(targetId === 'canvas') setTimeout(() => DrawingEngine.resize(), 50); 
+            },
+            bindEvents() {
+                document.getElementById('form-add-text').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    DrawingEngine.addTextLayer(
+                        document.getElementById('text-input-content').value, document.getElementById('text-input-color').value,
+                        parseInt(document.getElementById('text-input-size').value), document.getElementById('text-input-font').value, document.getElementById('text-input-align').value
+                    );
+                    UI.closeModal('modal-add-text');
+                });
+                
+                document.getElementById('form-export').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    DrawingEngine.exportCanvasFinal(document.getElementById('export-format').value, document.getElementById('export-bg').value);
+                    UI.closeModal('modal-export');
+                });
+                document.getElementById('export-format').addEventListener('change', (e) => {
+                    document.getElementById('export-bg-opt').style.display = e.target.value === 'png' ? 'block' : 'none';
+                    if(e.target.value !== 'png') document.getElementById('export-bg').value = 'solid';
+                });
+
+                document.getElementById('form-new-canvas').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    DrawingEngine.customSize = { w: parseInt(document.getElementById('new-canvas-w').value), h: parseInt(document.getElementById('new-canvas-h').value) };
+                    UI.closeModal('modal-new-canvas'); App.navigate('canvas'); setTimeout(() => DrawingEngine.executeClear(false), 50);
+                });
+
+                window.addEventListener('keydown', (e) => {
+                    if (!document.getElementById('view-canvas').classList.contains('hidden')) {
+                        const isCtrl = e.ctrlKey || e.metaKey;
+                        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+                        
+                        // Select All (Ctrl+A)
+                        if (isCtrl && e.key.toLowerCase() === 'a') {
+                            e.preventDefault();
+                            if (DrawingEngine.objects.length > 0) {
+                                DrawingEngine.activeObjectIds = DrawingEngine.objects.map(o => o.id);
+                                DrawingEngine.setTool('move-image');
+                                DrawingEngine.updateSelectionUI();
+                                DrawingEngine.syncLayerPanel();
+                                UI.showToast('Semua objek dipilih');
+                            }
+                            return;
+                        }
+
+                        // Group (Ctrl+G)
+                        if (isCtrl && !e.shiftKey && e.key.toLowerCase() === 'g') {
+                            e.preventDefault(); DrawingEngine.groupSelected(); return;
+                        }
+
+                        // Ungroup (Ctrl+Shift+G)
+                        if (isCtrl && e.shiftKey && e.key.toLowerCase() === 'g') {
+                            e.preventDefault(); DrawingEngine.ungroupSelected(); return;
+                        }
+
+                        if (isCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); DrawingEngine.undo(); return; }
+                        if ((isCtrl && e.key.toLowerCase() === 'y') || (isCtrl && e.shiftKey && e.key.toLowerCase() === 'z')) { e.preventDefault(); DrawingEngine.redo(); return; }
+                        if (e.key === 'Escape') { DrawingEngine.deselect(); return; }
+                        if (e.key === 'Delete' || e.key === 'Backspace') { if (DrawingEngine.activeObjectIds.length>0) { e.preventDefault(); DrawingEngine.deleteActiveObject(); } return; }
+                        if (isCtrl && e.key.toLowerCase() === 'c') {
+                            if (DrawingEngine.activeObjectIds.length > 0) {
+                                DrawingEngine.copiedObject = DrawingEngine.activeObjectIds.map(id => JSON.parse(JSON.stringify(DrawingEngine.objects.find(o => o.id === id))));
+                                UI.showToast('Objek disalin!');
+                            } return;
+                        }
+                        if (isCtrl && e.key.toLowerCase() === 'v') {
+                            if (DrawingEngine.copiedObject && DrawingEngine.copiedObject.length > 0) {
+                                e.preventDefault();
+                                DrawingEngine.deselect();
+                                DrawingEngine.copiedObject.forEach(cObj => {
+                                    const newObj = JSON.parse(JSON.stringify(cObj));
+                                    newObj.id = newObj.category + '_' + Date.now() + Math.random(); newObj.x += 20; newObj.y += 20;
+                                    DrawingEngine.objects.push(newObj); DrawingEngine.activeObjectIds.push(newObj.id);
+                                });
+                                DrawingEngine.syncDOM(); DrawingEngine.saveState(); UI.showToast('Objek ditempel!');
+                            }
+                        }
+                        if(DrawingEngine.activeObjectIds.length > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                            e.preventDefault();
+                            const speed = e.shiftKey ? 10 : 1;
+                            DrawingEngine.activeObjectIds.forEach(id => {
+                                const obj = DrawingEngine.objects.find(o => o.id === id);
+                                if(obj) {
+                                    if(e.key==='ArrowUp') obj.y-=speed; if(e.key==='ArrowDown') obj.y+=speed;
+                                    if(e.key==='ArrowLeft') obj.x-=speed; if(e.key==='ArrowRight') obj.x+=speed;
+                                    DrawingEngine.updateObjectDOM(obj);
+                                }
+                            });
+                            DrawingEngine.updateSelectionUI(); DrawingEngine.saveState();
+                        }
+                    }
+                });
+
+                document.getElementById('form-category').addEventListener('submit', async (e) => {
+                    e.preventDefault(); await DB.saveCategory({ id: document.getElementById('cat-id').value || Date.now().toString(), name: document.getElementById('cat-name').value });
+                    document.getElementById('cat-id').value = ''; document.getElementById('cat-name').value = ''; Logic.renderCategories();
+                });
+                
+                document.getElementById('form-save-canvas').addEventListener('submit', async (e) => {
+                    e.preventDefault(); DrawingEngine.deselect(); UI.showLoading('Menyimpan ke Galeri...');
+                    
+                    setTimeout(async () => {
+                        const temp = document.createElement('canvas'); const rect = DrawingEngine.canvas.getBoundingClientRect();
+                        temp.width = rect.width; temp.height = rect.height;
+                        
+                        // Render Base Raster & Goresan yang belum di-bake untuk Thumbnails Gallery (Standard Resolution)
+                        const tCtx = temp.getContext('2d');
+                        tCtx.fillStyle = '#ffffff'; tCtx.fillRect(0,0,rect.width, rect.height);
+                        
+                        const proceedSave = async () => {
+                            DrawingEngine.finishExport(tCtx, rect, temp, 'thumbnail');
+                            const dataUrl = temp.toDataURL('image/png');
+                            await DB.saveDrawing({ id: document.getElementById('canvas-id').value || Date.now().toString(), title: document.getElementById('canvas-title').value, categoryId: document.getElementById('canvas-category').value, dataURL: dataUrl, createdAt: DB.drawings.find(d => d.id === (document.getElementById('canvas-id').value))?.createdAt || Date.now(), updatedAt: Date.now() });
+                            UI.closeModal('modal-save-canvas', 'save-canvas-sheet'); UI.hideLoading(); UI.showToast('Karya berhasil disimpan'); DrawingEngine.executeClear(); App.navigate('dashboard');
+                        };
+
+                        if(DrawingEngine.baseImage) {
+                            tCtx.drawImage(DrawingEngine.baseImage, 0, 0, rect.width, rect.height);
+                            proceedSave();
+                        } else if(DrawingEngine.baseRasterData && DrawingEngine.baseRasterData.length > 10) {
+                            const img = new Image();
+                            img.onload = () => { tCtx.drawImage(img, 0, 0, rect.width, rect.height); proceedSave(); };
+                            img.src = DrawingEngine.baseRasterData;
+                        } else {
+                            proceedSave();
+                        }
+                    }, 100);
+                });
+                
+                document.getElementById('search-gallery').addEventListener('input', (e) => Logic.renderGallery(e.target.value));
+                document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+                    if(deleteTarget.type === 'reset') { await DB.clearDB(); localStorage.removeItem('sketchpro_draft'); window.location.reload(); } 
+                    else Logic.executeDelete();
+                });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => App.init());
+        if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+    </script>
+</body>
+</html>
